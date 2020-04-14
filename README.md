@@ -1,181 +1,91 @@
-# MSiA423 Template Repository
-
-<!-- toc -->
-
-- [Directory structure](#directory-structure)
-- [Running the app](#running-the-app)
-  * [1. Initialize the database](#1-initialize-the-database)
-    + [Create the database with a single song](#create-the-database-with-a-single-song)
-    + [Adding additional songs](#adding-additional-songs)
-    + [Defining your engine string](#defining-your-engine-string)
-      - [Local SQLite database](#local-sqlite-database)
-  * [2. Configure Flask app](#2-configure-flask-app)
-  * [3. Run the Flask app](#3-run-the-flask-app)
-- [Running the app in Docker](#running-the-app-in-docker)
-  * [1. Build the image](#1-build-the-image)
-  * [2. Run the container](#2-run-the-container)
-  * [3. Kill the container](#3-kill-the-container)
-  * [Workaround for potential Docker problem for Windows.](#workaround-for-potential-docker-problem-for-windows)
-
-<!-- tocstop -->
-
-## Directory structure 
-
-```
-├── README.md                         <- You are here
-├── api
-│   ├── static/                       <- CSS, JS files that remain static
-│   ├── templates/                    <- HTML (or other code) that is templated and changes based on a set of inputs
-│   ├── boot.sh                       <- Start up script for launching app in Docker container.
-│   ├── Dockerfile                    <- Dockerfile for building image to run app  
-│
-├── config                            <- Directory for configuration files 
-│   ├── local/                        <- Directory for keeping environment variables and other local configurations that *do not sync** to Github 
-│   ├── logging/                      <- Configuration of python loggers
-│   ├── flaskconfig.py                <- Configurations for Flask API 
-│
-├── data                              <- Folder that contains data used or generated. Only the external/ and sample/ subdirectories are tracked by git. 
-│   ├── external/                     <- External data sources, usually reference data,  will be synced with git
-│   ├── sample/                       <- Sample data used for code development and testing, will be synced with git
-│
-├── deliverables/                     <- Any white papers, presentations, final work products that are presented or delivered to a stakeholder 
-│
-├── docs/                             <- Sphinx documentation based on Python docstrings. Optional for this project. 
-│
-├── figures/                          <- Generated graphics and figures to be used in reporting, documentation, etc
-│
-├── models/                           <- Trained model objects (TMOs), model predictions, and/or model summaries
-│
-├── notebooks/
-│   ├── archive/                      <- Develop notebooks no longer being used.
-│   ├── deliver/                      <- Notebooks shared with others / in final state
-│   ├── develop/                      <- Current notebooks being used in development.
-│   ├── template.ipynb                <- Template notebook for analysis with useful imports, helper functions, and SQLAlchemy setup. 
-│
-├── reference/                        <- Any reference material relevant to the project
-│
-├── src/                              <- Source data for the project 
-│
-├── test/                             <- Files necessary for running model tests (see documentation below) 
-│
-├── app.py                            <- Flask wrapper for running the model 
-├── run.py                            <- Simplifies the execution of one or more of the src scripts  
-├── requirements.txt                  <- Python package dependencies 
-```
-
-## Running the app
-### 1. Initialize the database 
-
-#### Create the database with a single song 
-To create the database in the location configured in `config.py` with one initial song, run: 
-
-`python run.py create_db --engine_string=<engine_string> --artist=<ARTIST> --title=<TITLE> --album=<ALBUM>`
-
-By default, `python run.py create_db` creates a database at `sqlite:///data/tracks.db` with the initial song *Radar* by Britney spears. 
-#### Adding additional songs 
-To add an additional song:
-
-`python run.py ingest --engine_string=<engine_string> --artist=<ARTIST> --title=<TITLE> --album=<ALBUM>`
-
-By default, `python run.py ingest` adds *Minor Cause* by Emancipator to the SQLite database located in `sqlite:///data/tracks.db`.
-
-#### Defining your engine string 
-A SQLAlchemy database connection is defined by a string with the following format:
-
-`dialect+driver://username:password@host:port/database`
-
-The `+dialect` is optional and if not provided, a default is used. For a more detailed description of what `dialect` and `driver` are and how a connection is made, you can see the documentation [here](https://docs.sqlalchemy.org/en/13/core/engines.html). We will cover SQLAlchemy and connection strings in the SQLAlchemy lab session on 
-##### Local SQLite database 
-
-A local SQLite database can be created for development and local testing. It does not require a username or password and replaces the host and port with the path to the database file: 
-
-```python
-engine_string='sqlite:///data/tracks.db'
-
-```
-
-The three `///` denote that it is a relative path to where the code is being run (which is from the root of this directory).
-
-You can also define the absolute path with four `////`, for example:
-
-```python
-engine_string = 'sqlite://///Users/cmawer/Repos/2020-MSIA423-template-repository/data/tracks.db'
-```
+﻿# Project Charter
 
 
-### 2. Configure Flask app 
+## Vision
 
-`config/flaskconfig.py` holds the configurations for the Flask app. It includes the following configurations:
+COVID-19 gets more serious and people around the world are paying more attention to the problem. As data scientists, we wish to contribute to this problem by looking for better methods for estimates that can assist medical and governmental institutions to prepare and adjust as pandemics unfold. Data could probably provide valuable insights to the transmission rate. This project is inspired by a [kaggle competition]([https://www.kaggle.com/c/covid19-global-forecasting-week-3/overview/evaluation](https://www.kaggle.com/c/covid19-global-forecasting-week-3/overview/evaluation)), which aims to answer the questions of 'What is the transmission rate in one week ahead, and 'What are the important factors that affect the transmission rate'. The result will be presented by a web application, which predicts the COVID-19 transmission rate in the future given the historical data.
 
-```python
-DEBUG = True  # Keep True for debugging, change to False when moving to production 
-LOGGING_CONFIG = "config/logging/local.conf"  # Path to file that configures Python logger
-HOST = "0.0.0.0" # the host that is running the app. 0.0.0.0 when running locally 
-PORT = 5000  # What port to expose app on. Must be the same as the port exposed in app/Dockerfile 
-SQLALCHEMY_DATABASE_URI = 'sqlite:///data/tracks.db'  # URI (engine string) for database that contains tracks
-APP_NAME = "penny-lane"
-SQLALCHEMY_TRACK_MODIFICATIONS = True 
-SQLALCHEMY_ECHO = False  # If true, SQL for queries made will be printed
-MAX_ROWS_SHOW = 100 # Limits the number of rows returned from the database 
-```
+## Mission
 
-### 3. Run the Flask app 
+This project is designed to forecast confirmed cases and fatalities in different countries, based on the current number of cases and various development indicators of the country. The data of confirmed cases and fatality rate comes from [John Hopkins CSSE](https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data/csse_covid_19_time_series). The data of development indicator comes from [World Bank](http://wdi.worldbank.org/table/2.12#). Both datasets are open-sourced and could be used for research purpose.
 
-To run the Flask app, run: 
+The project has two initiatives, model development and web application development. For the first initiative, machine-learning based forecasting model is expected to be built. Moreover, the feature importance is expected to be analyzed to identify factors that appear to impact the transmission rate of COVID-19. For the second initiative, a web application of a sandbox will be developed, which allows its users to enter historical data and various indicators, to make a prediction of the confirmed cases and fatality rates for the next week.
 
-```bash
-python app.py
-```
+## Success criteria
 
-You should now be able to access the app at http://0.0.0.0:5000/ in your browser.
+The machine learning performance metric is [Root mean squared logarithmic error](https://www.kaggle.com/wiki/RootMeanSquaredLogarithmicError), which will be used to assess the model's performace. The final score is the mean of the RMSLE over fatalies and confirmed cases for all countries. The lower the RMSLE, the better the result. The desirable result of RMSLE equal or smaller than 0.2, meaning the square root of log error is not more than 20%.
 
-## Running the app in Docker 
+The metric that would actually measure the business outcome desired is transmission rate. If proper factors are identified by the model and addressed by the government, there could be a slower increase or even reduction in the transmission rate. However, the nature of this project determines its business outcome is difficult to measure.
 
-### 1. Build the image 
 
-The Dockerfile for running the flask app is in the `app/` folder. To build the image, run from this directory (the root of the repo): 
+## Planning
 
-```bash
- docker build -f app/Dockerfile -t pennylane .
-```
+### Initiative 1：Forecast Model Development
+- **Epic 1**: Problem Exploration
+	-   **Story 1**: Literature review 
+		- Reading on how others model the virus transmission
+		- Identify potential risks associated with the project
+    -   **Story 2**: Looking for supplementary datasets
+    
+-   **Epic 2**:  Data Preprocessing
+	- **Story 1**: Data Exploratory Analysis
+		- Looking at the distribution of the data
+		- Looking at the correlation of features
+	- **Story 2**: Cleaning the data
+		- Dealing with the missing values
+		- Dealing with extreme values
+		- Dealing with categorical features
+	- **Story 3**: Deriving additional features
+	- **Story 4**: Splitting for training, testing and validation dataset
 
-This command builds the Docker image, with the tag `pennylane`, based on the instructions in `app/Dockerfile` and the files existing in this directory.
- 
-### 2. Run the container 
+-   **Epic 3**:  Model Development
+	- **Story 1**: Building a baseline model
+		- Build a regression model
+	- **Story 2**: Developing evaluation metrics
+	- **Story 3**: Backtesting the model
+	- **Story 4**: Building more models
+	- **Story 5**: Comparing the models
+	-  **Story 6**: Operationalizing models
+		- Obtaining weekly-updated dataset
+		- Retraining the models every week
 
-To run the app, run from this directory: 
+-   **Epic 4**:  Feature Analysis
+	- **Story 1**: Analyzing the feature importance
+		- Sensitivity tests of each feature
+		- Ranking the importance
 
-```bash
-docker run -p 5000:5000 --name test pennylane
-```
-You should now be able to access the app at http://0.0.0.0:5000/ in your browser.
+### Initiative 2: Web Application Development
 
-This command runs the `pennylane` image as a container named `test` and forwards the port 5000 from container to your laptop so that you can access the flask app exposed through that port. 
+-  **Epic 1**:  Design the Application Structure
+-  **Epic 2**: Front-end Development
+	- **Story 1**: Designing the  Framework
+	- **Story 2**: Coding the front-end
+- **Epic 3**: Back-end Development
+	-  **Story 1**: Creating API for web application
+	-  **Story 2**: Online deployment on AWS
+- **Epic 4**: QA Testing
 
-If `PORT` in `config/flaskconfig.py` is changed, this port should be changed accordingly (as should the `EXPOSE 5000` line in `app/Dockerfile`)
 
-### 3. Kill the container 
+### Backlog
 
-Once finished with the app, you will need to kill the container. To do so: 
+1.  “Initiative1.epic1.story1” (2 points) - PLANNED
+2.  “Initiative1.epic1.story2” (1 points) - PLANNED
+3.  “Initiative1.epic2.story1” (2  points) - PLANNED
+4. “Initiative1.epic2.story2” (4 points) - PLANNED
+5. “Initiative1.epic2.story3” (4 points) - PLANNED
+6. “Initiative1.epic2.story4” (2 points) - PLANNED
+7. “Initiative1.epic3.story1” (2 points)
+8. “Initiative1.epic3.story2” (1 points)
+9. “Initiative1.epic3.story3” (1 points) 
+10. “Initiative1.epic3.story4” (8 points)
+11. “Initiative1.epic3.story5” (4 points) 
+12. “Initiative1.epic3.story6” (8 points)  
+13. “Initiative1.epic4.story1” (8 points)  
+14. “Initiative2.epic1” (2 points)  
+15. “Initiative2.epic2.story1” (1 points)  
+16. “Initiative2.epic2.story2” (8 points)  
+17. “Initiative2.epic3.story1” (8 points)  
 
-```bash
-docker kill test 
-```
-
-where `test` is the name given in the `docker run` command.
-
-### Workaround for potential Docker problem for Windows.
-
-It is possible that Docker will have a problem with the bash script `app/boot.sh` that is used when running on a Windows machine. Windows can encode the script wrongly so that when it copies over to the Docker image, it is corrupted. If this happens to you, try using the alternate Dockerfile, `app/Dockerfile_windows`, i.e.:
-
-```bash
- docker build -f app/Dockerfile_windows -t pennylane .
-```
-
-then run the same `docker run` command: 
-
-```bash
-docker run -p 5000:5000 --name test pennylane
-```
-
-The new image defines the entry command as `python3 app.py` instead of `./boot.sh`. Building the sample PennyLane image this way will require initializing the database prior to building the image so that it is copied over, rather than created when the container is run. Therefore, please **do the step [Create the database with a single song](#create-the-database-with-a-single-song) above before building the image**.
+### Icebox
+1. “Initiative2.epic3.story2” 
+2. “Initiative2.epic4” 
