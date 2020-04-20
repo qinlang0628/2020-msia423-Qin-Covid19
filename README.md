@@ -1,4 +1,5 @@
-# Project Charter
+# Covid19 Forecasting
+### Lang Qin (QA: Yuwei Deng)
 
 
 ## Vision
@@ -61,8 +62,9 @@ The metric that would actually measure the business outcome is transmission rate
 	- **Story 1**: Designing the  Framework
 	- **Story 2**: Coding the front-end
 - **Epic 3**: Back-end Development
-	-  **Story 1**: Creating API for web application
-	-  **Story 2**: Online deployment on AWS
+	-  **Story 1**: Setting up RDS to query from the app
+	-  **Story 2**: Setting up S3 to store raw data
+	-  **Story 3**: Online deployment on AWS
 - **Epic 4**: QA Testing
 
 
@@ -88,4 +90,5 @@ The metric that would actually measure the business outcome is transmission rate
 
 ### Icebox
 1. “Initiative2.epic3.story2” 
+2. “Initiative2.epic3.story3” 
 2. “Initiative2.epic4” 
