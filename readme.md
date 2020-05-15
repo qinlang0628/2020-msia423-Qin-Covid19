@@ -19,7 +19,7 @@ This project is designed to forecast confirmed cases and fatalities in different
 
 The project has two initiatives, model development and web application development. For the first initiative, machine-learning based forecasting model is expected to be built. Moreover, the feature importance is expected to be analyzed to identify factors that appear to impact the transmission rate of COVID-19. For the second initiative, a web application of a sandbox will be developed, which allows its users to enter historical data and various indicators, to make a prediction of the confirmed cases and fatality rates for the next week.
 
-## <a name="#criteria"></a> Success criteria
+## <a name="#criteria"></a>Success criteria
 
 The machine learning performance metric is [Root mean squared logarithmic error](https://www.kaggle.com/wiki/RootMeanSquaredLogarithmicError), which will be used to assess the model's performace. The final score is the mean of the RMSLE over fatalies and confirmed cases for all countries. The lower the RMSLE, the better the result. The desirable result of RMSLE equal or smaller than 0.2, meaning the square root of log error of the prediction is not more than 20%.
 
@@ -102,32 +102,36 @@ The metric that would actually measure the business outcome is transmission rate
 
 ## <a name="#instructions">Instructions
 
-### 1. Build the docker from terminal.
+### Step 1. Clone the repository
 ```
+git clone git@github.com:qinlang0628/2020-msia423-Qin-Covid19.git
 cd 2020-msia423-Qin-Covid19
+git checkout development
+```
+### Step 2. Build the docker
+```
 docker build -t runapp .
 ```
-### 2. Download the data from [John Hopkins CSSE]([https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv]) (Static, public data source).
+### Step 3. Download the data from [John Hopkins CSSE]([https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv]) 
 ```
 docker run --mount type=bind,source="$(pwd)"/data,target=/app/data runapp python3 src/download_data.py
 ```
-By default, the data will be downloaded to data/sample, you can also specify the output path by changing the OUTPUT_PATH in src/config.py.
+By default, the data will be downloaded to data/sample, you can also specify the output path by changing the OUTPUT_PATH in ```src/config.py```.
 
-### 3. Upload the data to AWS S3 bucket.
+### Step 4. Upload the data to AWS S3.
 
-To connect to the AWS S3, you need to change the credential information in config/aws_s3.conf by replacing \<aws access key> and \<aws secret access key> with your own key, which can be found in "security_credentials" section under your AWS account.
+To connect to the AWS S3, you need to change the credential information in ```config/aws_s3.conf``` by replacing \<access key id> and \<secret access key> with your own key, which can be found in "security_credentials" section under your AWS account.
 ```
 docker run --mount type=bind,source="$(pwd)"/data,target=/app/data runapp python3 src/upload_data.py
 ```
-By default the bucket is "nw-langqin-s3", you can also specify your own own bucket by add a ```--bucket``` or ```-b``` followed by your own bucket name.
+By default the bucket name is ```nw-langqin-s3```, you can also specify your own own bucket by add a ```--bucket <bucket name>``` or ```-b <bucket name>``` .
 
-### 4. Create an empty database
-The databse could be created either locally by the command below:
+### Step 5. Create an empty database
+- Choice 1: The database could be created locally by the command below:
 ```
 docker run --mount type=bind,source="$(pwd)"/data,target=/app/data runapp python3 src/models.py
 ```
-If you want to create the database in AWS RDS, you need to modify the config/aws_rds.conf by replacing \<user> and \<password> by your own user and password.
-and then type the command below:
+- Choice 2: If you want to create the database in AWS RDS, you need to modify the ```config/aws_rds.conf``` by replacing \<user>, \<password>, \<host>, \<port>, \<database> by your own information. Then type the command below:
 ```
 docker run --mount type=bind,source="$(pwd)"/data,target=/app/data runapp python3 src/models.py --rds
 ```
