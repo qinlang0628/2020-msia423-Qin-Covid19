@@ -13,7 +13,9 @@ COPY . /app
 
 RUN chmod +x app/boot.sh
 
-RUN chmod +x .mysqlconfig.sh
+#RUN echo 'source .mysqlconfig' >> ~/.bashrc
+#RUN source ~/.bashrc
+#RUN chmod +x ./.mysqlconfig.sh
 
 EXPOSE 5000
 
