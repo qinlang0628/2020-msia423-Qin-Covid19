@@ -112,7 +112,7 @@ git checkout development
 ```
 docker build -t runapp .
 ```
-### Step 3. Download the data from [John Hopkins CSSE]([https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv]) 
+### Step 3. Download the data from [John Hopkins CSSE](https://github.com/CSSEGISandData/COVID-19/blob/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv) 
 ```
 docker run --mount type=bind,source="$(pwd)"/data,target=/app/data runapp python3 src/download_data.py
 ```
