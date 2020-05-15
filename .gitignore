@@ -10,7 +10,8 @@ __pycache__/
 
 data/*
 !data/sample/
-!data/external/i
+!data/external/
 !.gitkeep
 
-config/*
+config/aws_s3.conf
+config/aws_rds.conf
