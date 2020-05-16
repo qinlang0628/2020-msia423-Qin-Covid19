@@ -20,10 +20,10 @@ Base = declarative_base()
 class Cases(Base):
     """ Defines the data model for the table `cases`. """
     __tablename__ = 'cases'
-
-    country_id = Column(String(100), primary_key=True, unique=True, nullable=False)
+    id = Column(String(100), primary_key=True, unique=True, nullable=False)
+    country_id = Column(String(100), nullable=False)
     country = Column(String(100), unique=False, nullable=False)
-    date = Column(Date, unique=True, nullable=False)
+    date = Column(Date, nullable=False)
     confirm_cases = Column(Integer, nullable=False)
     fatal_cases = Column(Integer, nullable=False)
 
@@ -80,7 +80,7 @@ if __name__ == "__main__":
         engine_string = engine_string = "{}://{}:{}@{}:{}/{}".format(conn_type, user, password, host, port, database)
         logger.info("Configured Successfully.")
 
-    # If "truncate" is given as an argument (i.e. python models.py --truncate), then empty the tweet_score table)
+    # If "truncate" is given as an argument (i.e. python models.py --truncate), then empty the cases table)
     if args.truncate:
         session = get_session(engine_string=engine_string)
         try:
@@ -93,7 +93,8 @@ if __name__ == "__main__":
             logger.error(e)
         finally:
             session.close()
-
+    
+    # create database 
     try:
         logger.info("Creating database in the engine ...")
         create_db(engine_string=engine_string)
