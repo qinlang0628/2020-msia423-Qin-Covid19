@@ -30,6 +30,6 @@ if __name__ == "__main__":
                 writer.writerow(line.decode('utf-8').split(','))
         logger.info("Saved successfully")
     except Exception as e:
-        logger.info("Error occurred when trying to save the file.")
+        logger.error("Error occurred when trying to save the file.")
         logger.error(e)
 

@@ -39,7 +39,7 @@ if __name__ == '__main__':
                         aws_secret_access_key=AWS_SECRET_ACCESS_KEY) 
         logger.info("Connected successfully.")
     except Exception as ex:
-        logger.info("Error occurred when connecting.")
+        logger.error("Error occurred when connecting.")
         logger.error(ex)
 
     # upload to aws

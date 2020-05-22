@@ -108,7 +108,7 @@ git clone git@github.com:qinlang0628/2020-msia423-Qin-Covid19.git
 cd 2020-msia423-Qin-Covid19
 git checkout development
 ```
-### Step 2. Build the docker
+### Step 2. Build the docker image
 ```
 docker build -t runapp .
 ```
@@ -120,7 +120,7 @@ By default, the data will be downloaded to data/sample, you can also specify the
 
 ### Step 4. Upload the data to AWS S3.
 
-To connect to the AWS S3, you need to change the credential information in ```config/aws_s3.conf``` by replacing \<access key id> and \<secret access key> with your own key, which can be found in "security_credentials" section under your AWS account.
+To connect to the AWS S3, you need to change the credential information in ```config/aws_s3.conf``` by replacing \<access key id> and \<secret access key> with your own key, which can be found in "security_credentials" section under your AWS account. If you edit the config file after building the file,  you need to re-build the image (Step 2) before running the script. Then type the command below:
 ```
 docker run --mount type=bind,source="$(pwd)"/data,target=/app/data runapp python3 src/upload_data.py
 ```
@@ -131,7 +131,7 @@ By default the bucket name is ```nw-langqin-s3```, you can also specify your own
 ```
 docker run --mount type=bind,source="$(pwd)"/data,target=/app/data runapp python3 src/models.py
 ```
-- Choice 2: If you want to create the database in AWS RDS, you need to modify the ```config/aws_rds.conf``` by replacing \<user>, \<password>, \<host>, \<port>, \<database> by your own information. Then type the command below:
+- Choice 2: If you want to create the database in AWS RDS, you need to modify the ```config/aws_rds.conf``` by replacing \<user>, \<password>, \<host>, \<port>, \<database> by your own information. If you edit the config file after building the file,  you need to re-build the image (Step 2) before running the script. Then type the command below:
 ```
 docker run --mount type=bind,source="$(pwd)"/data,target=/app/data runapp python3 src/models.py --rds
 ```

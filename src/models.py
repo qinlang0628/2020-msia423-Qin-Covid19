@@ -26,10 +26,11 @@ class Cases(Base):
     date = Column(Date, nullable=False)
     confirm_cases = Column(Integer, nullable=False)
     fatal_cases = Column(Integer, nullable=False)
+    prediction = Column(Integer, nullable=True)
 
     def __repr__(self):
-        cases_repr = "<Cases(country_id='%s', country='%s', date='%s', confirm_cases='%s', fatal_cases='%s')>"
-        return cases_repr % (self.country_id, self.country, self.date, self.confirm_cases, self.fatal_cases)
+        cases_repr = "<Cases(country_id='%s', country='%s', date='%s', confirm_cases='%s', fatal_cases='%s', prediction='%s')>"
+        return cases_repr % (self.country_id, self.country, self.date, self.confirm_cases, self.prediction)
 
 
 def _truncate_cases(session):
@@ -38,7 +39,7 @@ def _truncate_cases(session):
 
 
 def create_db(engine=None, engine_string=None):
-    """Creates a database with the data models inherited from `Base` (Tweet and TweetScore).
+    """Creates a database with the data models inherited from `Base` (Cases).
     Args:
         engine (:py:class:`sqlalchemy.engine.Engine`, default None): SQLAlchemy connection engine.
             If None, `engine_string` must be provided.

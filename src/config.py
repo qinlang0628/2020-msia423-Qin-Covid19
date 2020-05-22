@@ -25,7 +25,3 @@ SQLALCHEMY_ECHO = False  # If true, SQL for queries made will be printed
 BASE_URL = 'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series'
 FILE_NAME = 'time_series_covid19_confirmed_global.csv'
 OUTPUT_PATH = os.path.join(PROJECT_HOME, 'data', 'sample', FILE_NAME)
-
-# # Acquire and process config
-# MAX_RECORDS_READ = 100
-# SENTIMENT_RAW_LOCATION = path.join(PROJECT_HOME,'data/tweet_sentiment.json')
