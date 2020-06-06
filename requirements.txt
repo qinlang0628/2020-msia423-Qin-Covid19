@@ -2,7 +2,7 @@ Flask-SQLAlchemy==2.4.1
 SQLAlchemy==1.3.15
 PyYAML==5.3.1
 Flask==1.1.1
-Django==2.0.3
+Django==2.2.13
 requests
 boto3
 PyMySQL==0.9.3
