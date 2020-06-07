@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<link href="basic.css" rel="stylesheet" type="text/css">
+<!-- <link href="basic.css" rel="stylesheet" type="text/css"> -->
 
 <style>
   /* 13. Basic Styling with CSS */
@@ -49,6 +49,59 @@ fieldset {
   grid-row: 1;
 }
 
+
+.dropbtn {
+  background-color: #4CAF50;
+  color: white;
+  padding: 16px;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+}
+
+.dropbtn:hover, .dropbtn:focus {
+  background-color: #3e8e41;
+}
+
+#myInput {
+  box-sizing: border-box;
+  background-image: url('searchicon.png');
+  background-position: 14px 12px;
+  background-repeat: no-repeat;
+  font-size: 16px;
+  padding: 14px 20px 12px 45px;
+  border: none;
+  border-bottom: 1px solid #ddd;
+}
+
+#myInput:focus {outline: 3px solid #ddd;}
+
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #f6f6f6;
+  min-width: 230px;
+  overflow: auto;
+  border: 1px solid #ddd;
+  z-index: 1;
+}
+
+.dropdown-content a {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+}
+
+.dropdown a:hover {background-color: #ddd;}
+
+.show {display: block;}
+
 </style>
 
   <head>
@@ -67,7 +120,49 @@ fieldset {
     <fieldset id="sourceList">
       <legend>Model</legend>
       <div>
-        <form action="{{ url_for('change_data') }}" method="post">
+        
+          <!-- country selection -->
+          <div class="dropdown">
+            <button onclick="myFunction()" class="dropbtn">Dropdown</button>
+            <div id="myDropdown" class="dropdown-content">
+              <input type="text" placeholder="Search.." id="myInput" onkeyup="filterFunction()">
+                <form action="{{ url_for('change_data') }}" method="post">
+                
+                <input type="submit" name="country_name" id="1" value="United States" />
+                <input type="submit" name="country_name" id="2" value="China" />
+
+                <a href="#about">About</a>
+                </form>
+              
+            </div>
+          </div>
+        
+          
+          <script>
+          /* When the user clicks on the button,
+          toggle between hiding and showing the dropdown content */
+          function myFunction() {
+            document.getElementById("myDropdown").classList.toggle("show");
+          }
+          
+          function filterFunction() {
+            var input, filter, ul, li, a, i;
+            input = document.getElementById("myInput");
+            filter = input.value.toUpperCase();
+            div = document.getElementById("myDropdown");
+            a = div.getElementsByTagName("a");
+            for (i = 0; i < a.length; i++) {
+              txtValue = a[i].textContent || a[i].innerText;
+              if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                a[i].style.display = "";
+              } else {
+                a[i].style.display = "none";
+              }
+            }
+          }
+          </script>
+
+      <form action="{{ url_for('change_data') }}" method="post">
           <div class="radio-option checked">
             <!-- <label>Exponential Model</label> -->
             <input type="submit" name="model_type" id="option1" value="exp" />
@@ -75,6 +170,7 @@ fieldset {
             <input type="submit" name="model_type" id="option2" value="linear" />
             <!-- <label>LSTM Model</label> -->
             <input type="submit" name="model_type" id="option3" value="lstm" />
+            <input type="submit" name="model_type" id="option0" value="reset" />
           </div>
       </form>
       </div>
@@ -84,7 +180,6 @@ fieldset {
   <!-- Load in the d3 library -->
   <script src="https://d3js.org/d3.v5.min.js"></script>
   <script>
-
 
   var dataset = {
     dates : [
@@ -117,7 +212,6 @@ fieldset {
   }
 
   var model_details = JSON.parse('{{ model_details | tojson | safe}}');
-
   // change dataset format
 
 
@@ -211,12 +305,14 @@ fieldset {
   //     .attr("class", "area")
   //     .attr("d", area);
   
-  svg.append("path")
+  if (model_details.show_prediction == true){
+    svg.append("path")
       .datum(pred_dataset) // 10. Binds data to the line 
       .attr("class", "line") // Assign a class for styling 
       .attr("d", line) // 11. Calls the line generator 
       .attr("stroke-dasharray", '5,5');
-  
+  }
+
   svg.append("line") // a dash line for the current date
       .attr("x1", xScale(xmax1))  //<<== change your code here
       .attr("y1", yScale(dataset.slice(-1).pop().y))
@@ -240,18 +336,21 @@ fieldset {
       })
         .on("mouseout", function() {  })
   
-  svg.selectAll(".dot2")
-      .data(pred_dataset)
-      .enter().append("circle") // Uses the enter().append() method
-      .attr("class", "dot") // Assign a class for styling
-      .attr("cx", function(d) { return xScale(d.x) })
-      .attr("cy", function(d) { return yScale(d.y) })
-      .attr("r", 5)
-        .on("mouseover", function(a, b, c) { 
-          console.log(a) 
-          // this.attr('class', 'focus')
-      })
-        .on("mouseout", function() {  })
+
+  if (model_details.show_prediction == true){
+    svg.selectAll(".dot2")
+        .data(pred_dataset)
+        .enter().append("circle") // Uses the enter().append() method
+        .attr("class", "dot") // Assign a class for styling
+        .attr("cx", function(d) { return xScale(d.x) })
+        .attr("cy", function(d) { return yScale(d.y) })
+        .attr("r", 5)
+          .on("mouseover", function(a, b, c) { 
+            console.log(a) 
+            // this.attr('class', 'focus')
+        })
+          .on("mouseout", function() {  })
+  }
   
   // 13. append text
   svg.append("text")
@@ -261,13 +360,22 @@ fieldset {
     .attr("class", "model_analysis")//easy to style with CSS
     .text("Current Model: " + model_details.model_name)
 
-  svg.append("text")
+  if (model_details.model_name != "None"){
+    svg.append("text")
     .attr("y", margin.top + 30)
     .attr("x", window.innerWidth / 2)
     .attr('text-anchor', 'middle')
     .attr("class", "model_analysis")//easy to style with CSS
-    .text("Model Accuracy: " + model_details.model_accuracy)
-
+    .text("Model R Square: " + model_details.r2)
+  
+    svg.append("text")
+    .attr("y", margin.top + 50)
+    .attr("x", window.innerWidth / 2)
+    .attr('text-anchor', 'middle')
+    .attr("class", "model_analysis")//easy to style with CSS
+    .text("Model MSLE: " + model_details.msle)
+  }
+  
   </script>
   
 
