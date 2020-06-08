@@ -54,12 +54,15 @@ class exponential_model(object):
             (dict): a dictionary of popt and pcov
         '''
         return {"popt": self.popt, "pcov": self.pcov}
+    
+    def get_name(self):
+        return "Exponential Model"
 
 
 
 class lstm_model(object):
     
-    def __init__(self, n_steps=10, n_features=1, n_output=1, nodes=50, epoch=50,
+    def __init__(self, n_steps=3, n_features=1, n_output=1, nodes=50, epoch=50,
                  activation="relu", optimizer='adam', loss='mse'):
         # define params
         self.n_steps = n_steps
@@ -72,7 +75,6 @@ class lstm_model(object):
         self.model.add(Dense(n_output))
         self.model.compile(optimizer=optimizer, loss=loss)
     
-
     def _split_sequence(self, sequence, n_steps):
         '''split a univariate sequence into samples
         input: 
@@ -126,13 +128,16 @@ class lstm_model(object):
         output:
             None
         '''
-        incres = self._calculate_incre(y)
-        x_lstm, y_lstm = self._split_sequence(incres, self.n_steps)
-        x_lstm = x_lstm.reshape((x_lstm.shape[0], x_lstm.shape[1], self.n_features))
-        
-        self.model.fit(x_lstm, y_lstm, epochs=self.epoch, verbose=0)
-        self.lasty = y[-1]
-        self.last_incres = y_lstm[-self.n_steps:]
+        try:
+            incres = self._calculate_incre(y)
+            x_lstm, y_lstm = self._split_sequence(incres, self.n_steps)
+            x_lstm = x_lstm.reshape((x_lstm.shape[0], x_lstm.shape[1], self.n_features))
+            self.model.fit(x_lstm, y_lstm, epochs=self.epoch, verbose=0)
+            self.lasty = y[-1]
+            self.last_incres = incres[-self.n_steps:]
+        except Exception as ex:
+            logger.error(ex)
+
     
     def predict(self, x):
         '''predict the x array
@@ -143,8 +148,9 @@ class lstm_model(object):
         '''
         y_pred = list(self.last_incres)
         for i in range(x.shape[0]):
-            x_input = np.array(y_pred[-self.n_steps:])
+            x_input = self.last_incres
             x_input = x_input.reshape((1, self.n_steps, self.n_features))
+            
             y_tmp = self.model.predict(x_input, verbose=0)
             y_pred.append(y_tmp[0])
         y_pred = np.concatenate(y_pred[self.n_steps:])
@@ -152,3 +158,56 @@ class lstm_model(object):
         # post processing
         y_pred = self._process_incre(y_pred, self.lasty)
         return y_pred
+    
+    def get_name(self):
+        return "LSTM Model"
+
+
+class logistic_model(object):
+    '''
+    reference: https://towardsdatascience.com/modeling-logistic-growth-1367dc971de2
+    '''
+    
+    def __init__(self, lower_bound = 0, upper_bound = [np.inf, 1, np.inf], p0=[1,0,1], maxfev=5000):
+        self.popt = None
+        self.pcov = None
+        self.lower_bound = lower_bound
+        self.upper_bound = upper_bound
+        self.p0 = p0
+        self.maxfev = maxfev
+        
+    def func(self, x, a, b, c):
+        return c / (1 + a * np.exp(- b * x))
+    
+    def fit(self, x, y):
+        ''' fit the model
+        input:
+            x, y(numpy.array): input arrays
+        output:
+            None
+        '''
+        self.popt, self.pcov = opt.curve_fit(self.func, 
+                                             x, y,
+                                             bounds = (self.lower_bound, self.upper_bound),
+                                             p0=self.p0, maxfev=self.maxfev)    
+    def predict(self, x):
+        '''predict the x array
+        input:
+            x (numpy.array): input array
+        output:
+            y (numpy.array): output label array
+        '''
+        y = self.func(x, *self.popt)
+        return y
+    
+    def get_coeff(self):
+        '''get coefficient of the model
+        detailed information is here: 
+        https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.curve_fit.html
+        output:
+            (dict): a dictionary of popt and pcov
+        '''
+        return {"popt": self.popt, "pcov": self.pcov}
+    
+    def get_name(self):
+        return "Logistic Model"

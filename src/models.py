@@ -12,6 +12,8 @@ from helpers import create_connection, get_session
 import argparse
 import configparser
 
+import pandas as pd
+
 logging.config.fileConfig(config.LOGGING_CONFIG)
 logger = logging.getLogger('database_models')
 
@@ -21,16 +23,13 @@ class Cases(Base):
     """ Defines the data model for the table `cases`. """
     __tablename__ = 'cases'
     id = Column(String(100), primary_key=True, unique=True, nullable=False)
-    country_id = Column(String(100), nullable=False)
     country = Column(String(100), unique=False, nullable=False)
-    date = Column(Date, nullable=False)
-    confirm_cases = Column(Integer, nullable=False)
-    fatal_cases = Column(Integer, nullable=False)
-    prediction = Column(Integer, nullable=True)
+    date = Column(String(100), nullable=False)
+    confirm_cases = Column(Integer, nullable=True)
 
     def __repr__(self):
-        cases_repr = "<Cases(country_id='%s', country='%s', date='%s', confirm_cases='%s', fatal_cases='%s', prediction='%s')>"
-        return cases_repr % (self.country_id, self.country, self.date, self.confirm_cases, self.prediction)
+        cases_repr = "<Cases(country='%s', date='%s', confirm_cases='%s')>"
+        return cases_repr % (self.country, self.date, self.confirm_cases)
 
 
 def _truncate_cases(session):
@@ -54,6 +53,26 @@ def create_db(engine=None, engine_string=None):
         engine = create_connection(engine_string=engine_string)
 
     Base.metadata.create_all(engine)
+
+def add_cases(engine_string, id, country, date, confirm_cases):
+    """Seeds an existing database with additional cases.
+    input:
+        engine_string (str): database engine string
+        id (int): id of the case
+        country (str): country name
+        date (str): date
+        confirm_cases (int): confirmed cases
+    output:None
+    """
+    engine = sqlalchemy.create_engine(engine_string)
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    case = Cases(country=country, date=date, confirm_cases=confirm_cases)
+    session.add(case)
+    session.commit()
+    logger.info("%s at %s of %s, added to database", country, date, confirm_cases)
 
 
 if __name__ == "__main__":
@@ -103,3 +122,27 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error("Error occurred while creating database")
         logger.error(e)
+
+    # add cases
+    try:
+        session = get_session(engine_string=engine_string)
+        cases = pd.read_csv('data/sample/clean_confirmed_global.csv')
+        country_col = "Country"
+        date_cols = [x for x in cases.columns if x != "Country"]
+        id = 0
+        for index, row in cases.iterrows():
+            country = row[country_col]
+            for date in date_cols:
+                if row[date] == row[date]:
+                    case = Cases(id=str(id), country=country, date=date, confirm_cases=row[date])
+                    session.add(case)
+                    id += 1
+            logger.info("%s added to database", country)
+        session.commit()
+    except Exception as ex:
+        logger.error(ex)
+    finally:
+        session.close()
+                
+
+
