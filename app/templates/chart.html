@@ -31,15 +31,47 @@ fill: none;
 stroke: steelblue;
 }
 
-input[type=submit]
+/* input[type=submit]
 {
 background-color: #4CAF50;
 border: none;
 color: white;
 padding: 16px 32px;
 text-decoration: none;
-margin: 4px 2px;
+margin: 4px 0px;
 cursor: pointer;
+} */
+
+.modelInput{
+  position:relative;
+  width:24%;
+  background-color: #4CAF50;
+  border: none;
+  color: white;
+  padding: 16px 32px;
+  text-decoration: none;
+  margin: 4px 0px;
+  cursor: pointer;
+  font-size: 16px;
+}
+.modelInput:hover, .modelInput:focus {
+  background-color: #3e8e41;
+}
+
+.loadInput{
+  position: relative;
+  width: 100%;
+  background-color: #4CAF50;
+  border: none;
+  color: white;
+  padding: 16px 32px;
+  text-decoration: none;
+  margin: 4px 0px;
+  cursor: pointer;
+  font-size: 16px;
+}
+.loadInput:hover, .loadInput:focus {
+  background-color: #3e8e41;
 }
 
 .options {
@@ -55,6 +87,8 @@ fieldset {
   color: white;
   padding: 16px;
   font-size: 16px;
+  position:relative;
+  width:100%;
   border: none;
   cursor: pointer;
 }
@@ -78,13 +112,14 @@ fieldset {
 
 .dropdown {
   position: relative;
-  display: inline-block;
+  /* display: inline-block; */
 }
 
 .dropdown-content {
   display: none;
   position: absolute;
   background-color: #f6f6f6;
+  position: relative;
   min-width: 230px;
   overflow: auto;
   border: 1px solid #ddd;
@@ -111,29 +146,39 @@ fieldset {
     <!-- import plugin script -->
     <!-- <script src='static/Chart.min.js'></script> -->
   </head>
-  The chart is then defined as a HTML5 canvas element:
+  <!-- The chart is then defined as a HTML5 canvas element: -->
   
-  <h1>Simple Line Chart</h1>
+  <h1>Covid-19 Confirmed Case Prediction</h1>
   <!-- bar chart canvas element -->
 
-  <div class="options">
-    <fieldset id="sourceList">
-      <legend>Model</legend>
+  <!-- <div class="options">
+    <fieldset id="sourceList"> -->
+      <!-- <legend>Model</legend> -->
       <div>
+
+        <form action="{{ url_for('change_data') }}" method="post">
+          <input type="submit" name="load_data" class="loadInput" value="Load Lastest Data"/>
+        </form>
         
           <!-- country selection -->
-          <div class="dropdown">
-            <button onclick="myFunction()" class="dropbtn">Dropdown</button>
+          <div class="dropdown" >
+            <button onclick="myFunction()" class="dropbtn">Select a country</button>
             <div id="myDropdown" class="dropdown-content">
               <input type="text" placeholder="Search.." id="myInput" onkeyup="filterFunction()">
-                <form action="{{ url_for('change_data') }}" method="post">
-                
-                <input type="submit" name="country_name" id="1" value="United States" />
-                <input type="submit" name="country_name" id="2" value="China" />
-
-                <a href="#about">About</a>
+                <form action="{{ url_for('chart') }}" method="post" id="myCountries">
+                <script>
+                  var countries = [{% for item in countries %}"{{ item }}",{% endfor %}]
+                  for (var i = 0; i < countries.length; i++) {
+                      var newForm = document.createElement("input");
+                          // newForm.name = "country_name";
+                          newForm.type="submit";
+                          newForm.id = "form"+i;
+                          newForm.setAttribute("name","country_name" )
+                          newForm.value = countries[i];
+                          document.getElementById("myCountries").appendChild(newForm);
+                  }
+                </script>
                 </form>
-              
             </div>
           </div>
         
@@ -150,9 +195,9 @@ fieldset {
             input = document.getElementById("myInput");
             filter = input.value.toUpperCase();
             div = document.getElementById("myDropdown");
-            a = div.getElementsByTagName("a");
+            a = div.getElementsByTagName("input");
             for (i = 0; i < a.length; i++) {
-              txtValue = a[i].textContent || a[i].innerText;
+              txtValue = a[i].value;
               if (txtValue.toUpperCase().indexOf(filter) > -1) {
                 a[i].style.display = "";
               } else {
@@ -163,19 +208,32 @@ fieldset {
           </script>
 
       <form action="{{ url_for('change_data') }}" method="post">
-          <div class="radio-option checked">
-            <!-- <label>Exponential Model</label> -->
-            <input type="submit" name="model_type" id="option1" value="exp" />
-            <!-- <label>Linear Model</label> -->
-            <input type="submit" name="model_type" id="option2" value="linear" />
-            <!-- <label>LSTM Model</label> -->
-            <input type="submit" name="model_type" id="option3" value="lstm" />
-            <input type="submit" name="model_type" id="option0" value="reset" />
-          </div>
+            <input type="submit" name="model_type" id="option1" value="exp" class="modelInput"/>
+            <input type="submit" name="model_type" id="option2" value="logistic" class="modelInput"/>
+            <input type="submit" name="model_type" id="option3" value="lstm" class="modelInput"/>
+            <input type="submit" name="model_type" id="option0" value="reset" class="modelInput"/>
       </form>
+
+      
+
       </div>
-    </fieldset>
-  </div>
+    <!-- </fieldset> -->
+  <!-- </div>  -->
+
+  <script >
+    var model_details = JSON.parse('{{ model_details | tojson | safe}}');
+    
+      if (model_details.model_name == "None"){
+        document.querySelector(".model_info .model_name").innerHTML = "None";
+      } else {
+        document.querySelector(".model_info .model_name").innerHTML = model_details.model_name;
+      }
+  
+  </script>
+
+  <!-- <div class ="model_info">
+    <h2>The current model is: <span id="model_name"></span></h2>
+  </div>   -->
   
   <!-- Load in the d3 library -->
   <script src="https://d3js.org/d3.v5.min.js"></script>
@@ -211,7 +269,7 @@ fieldset {
       {% endfor %}]
   }
 
-  var model_details = JSON.parse('{{ model_details | tojson | safe}}');
+  
   // change dataset format
 
 
@@ -353,6 +411,14 @@ fieldset {
   }
   
   // 13. append text
+  var current_country = {{current_country|tojson}}
+  svg.append("text")
+    .attr("y", margin.top - 10)
+    .attr("x", window.innerWidth / 2)
+    .attr('text-anchor', 'middle')
+    .attr("class", "model_analysis")//easy to style with CSS
+    .text("Current Country: " + current_country)
+
   svg.append("text")
     .attr("y", margin.top + 10)
     .attr("x", window.innerWidth / 2)

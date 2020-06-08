@@ -204,10 +204,11 @@ def change_data():
             cmodel.model_type = request.form['model_type']
             logger.info("Update model: {}".format(cmodel.model_type))
     
-    if "country_name" in request.form:
-        cmodel.country_name = request.form['country_name']
-        # cmodel.model_type = 'none'
-        logger.info("Update country: {}".format(cmodel.country_name))
+    # if "country_name" in request.form:
+    #     cmodel.country_name = request.form['country_name']
+    #     # cmodel.model_type = 'none'
+    #     cattrs.current_country = request.form['country_name']
+    #     logger.info("Update country: {}".format(cmodel.country_name))
 
     # update prediction
     cmodel.update_prediction()
@@ -239,6 +240,15 @@ def chart():
     if "country_name" in request.form:
         country_name = request.form["country_name"]
         logger.info("change country to {}".format(country_name))
+        dates, values = query_data(country_name, cattrs.display_span)
+        cattrs.current_country = country_name
+        cmodel.update_input(dates, values)
+
+    if "load_data" in request.form:
+        # download latest data from online resource
+        # clean the dataset
+        # write to database
+        # reflect on the page
         dates, values = query_data(country_name, cattrs.display_span)
         cmodel.update_input(dates, values)
 
