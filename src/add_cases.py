@@ -4,33 +4,21 @@ import argparse
 import logging.config
 import yaml
 import os
+import pandas as pd
 
 import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, MetaData
 from sqlalchemy.orm import sessionmaker
+from src.models import get_session, truncate_cases
+
+from config import config
 
 
 logger = logging.getLogger(__name__)
 logger.setLevel("INFO")
 
 Base = declarative_base()
-
-
-# class Tracks(Base):
-#     """Create a data model for the database to be set up for capturing songs
-
-#     """
-
-#     __tablename__ = 'tracks'
-
-#     id = Column(Integer, primary_key=True)
-#     title = Column(String(100), unique=False, nullable=False)
-#     artist = Column(String(100), unique=False, nullable=False)
-#     album = Column(String(100), unique=False, nullable=True)
-
-#     def __repr__(self):
-#         return '<Track %r>' % self.title
 
 class Cases(Base):
     """ Defines the data model for the table `cases`. """
@@ -68,22 +56,70 @@ def create_db(args):
     logger.info("Database created with song added: %s by %s from album, %s ", args.title, args.artist, args.album)
     session.close()
 
+# add cases
+def add_cases(session, config, **kwargs):
+    ''' Add cases from csv to database
+    input:
+        session (sqlalchemy.orm.session.Session): a SQL database connection session
+        config (module): a python config file
+    output:
+        None
+    '''
+    try:
+        logger.info("Add cases to database...")
+        # read cases from csv
+        cases = pd.read_csv(config.CLEAN_FILE_PATH)
+        # extract country & date columns
+        country_col = kwargs["country_col"]
+        date_cols = [x for x in cases.columns if x != kwargs["country_col"]]
+        
+        # construct a Cases object and save to database for each country, each day
+        id = 0
+        for index, row in cases.iterrows():
+            country = row[country_col]
+            for date in date_cols:
+                if row[date] == row[date]:
+                    try:
+                        case = Cases(id=str(id), country=country, date=date, confirm_cases=row[date])
+                        session.add(case)
+                    except Exception as Ex:
+                        logger.error(ex)
+                    id += 1
+            logger.debug("%s added to database", country)
+        # commit the change
+        session.commit()
+    except Exception as ex:
+        logger.error(ex)
 
-def add_track(args):
-    """Seeds an existing database with additional songs.
+def main_from_session(session):
+    try:
+        # read yml config
+        with open(config.PARAM_CONFIG, "r") as f:
+            param = yaml.load(f, Loader=yaml.SafeLoader)
+        param_py = param["add_cases"]
+        
+        truncate_cases(session)
+        add_cases(session, config, **param_py["add_cases"])
+    except Exception as ex:
+        log.error(ex)
 
-    Args:
-        args: Argparse args - should include args.title, args.artist, args.album
+def main(engine_string):
+    # construct a database connection
+    try:
+        session = get_session(engine_string=engine_string)
+    except Exception as ex:
+        logger.error(ex)
+    
+    # add cases if the database session is created
+    if session:
+        try:
+            main_from_session(session)
+        except Exception as ex:
+            logger.error(ex)
+        finally:
+            # close the database connection
+            session.close()
 
-    Returns:None
-
-    """
-    engine = sqlalchemy.create_engine(args.engine_string)
-
-    Session = sessionmaker(bind=engine)
-    session = Session()
-
-    track = Tracks(artist=args.artist, album=args.album, title=args.title)
-    session.add(track)
-    session.commit()
-    logger.info("%s by %s from album, %s, added to database", args.title, args.artist, args.album)
+if __name__ == "__main__":
+    engine_string = config.SQLALCHEMY_DATABASE_URI
+    main(engine_string)

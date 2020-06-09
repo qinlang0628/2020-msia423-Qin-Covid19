@@ -1,15 +1,22 @@
 import traceback
 from flask import render_template, request, redirect, url_for
 import logging.config
-# from app.models import Tracks
+
 from flask import Flask
 from src.add_cases import Cases
 from src.prediction_models import exponential_model, lstm_model, logistic_model
 from src.evaluate import evaluate
+
+import src.download_data as download_data
+import src.clean_data as clean_data
+import src.add_cases as add_cases
+
 from flask_sqlalchemy import SQLAlchemy
-from src import config
+from config import config
 import datetime
 import numpy as np
+import yaml
+
 
 
 # Initialize the Flask application
@@ -70,6 +77,7 @@ class chart_attribute(object):
         self.countries = []
         self.current_country = "Afghanistan"
         self.display_span = 23
+        self.param = None
     
 
 # define default values
@@ -162,37 +170,40 @@ class current_model(object):
     def update_prediction(self):
         ''' with new curren value and span, update the prediction
         '''
-        if self.model_type == "exp":
-            self.model = exponential_model()
-            
-        if self.model_type == "lstm":
-            self.model = lstm_model(n_steps=3, nodes=50)
-            
-        if self.model_type == "logistic":
-            self.model = logistic_model()
-            
-        # write model details
-        if self.model_type == "none":
-            self.pred_values = [0,0,0,0,0,0,0,0]
-            self.model_details["model_name"] = "None"
-            self.model_details["r2"] = 0.0
-            self.model_details["msle"] = 0.0
-            self.model_details["show_prediction"] = False
-        else:
-            # update prediction values
-            x, y, x_test = np.array(self.keys_use), np.array(self.values_use), np.array(self.pred_keys)
-            self.model.fit(x, y)
-            self.pred_values = list(self.model.predict(x_test))
+        try:
+            if self.model_type == "exp":
+                self.model = exponential_model(**cattrs.param["prediction_models"]["exponential_model"])
+                
+            if self.model_type == "lstm":
+                self.model = lstm_model(**cattrs.param["prediction_models"]["lstm_model"])
+                
+            if self.model_type == "logistic":
+                self.model = logistic_model(**cattrs.param["prediction_models"]["logistic_model"])
+                
+            # write model details
+            if self.model_type == "none":
+                self.pred_values = [0,0,0,0,0,0,0,0]
+                self.model_details["model_name"] = "None"
+                self.model_details["r2"] = 0.0
+                self.model_details["msle"] = 0.0
+                self.model_details["show_prediction"] = False
+            else:
+                # update prediction values
+                x, y, x_test = np.array(self.keys_use), np.array(self.values_use), np.array(self.pred_keys)
+                self.model.fit(x, y)
+                self.pred_values = list(self.model.predict(x_test))
 
-            # get last x day performance
-            self.evaluate_model()
-            self.model_details["model_name"] = self.model.get_name()
-            self.model_details["show_prediction"] = True
+                # get last x day performance
+                self.evaluate_model()
+                self.model_details["model_name"] = self.model.get_name()
+                self.model_details["show_prediction"] = True
+        except Exception as ex:
+            logger.error(Exception)
 
 
 
 @app.route("/change", methods=['POST'])
-def change_data():
+def change_data():  
     global cmodel
     logger.info(request.form) # do something
 
@@ -204,13 +215,6 @@ def change_data():
             cmodel.model_type = request.form['model_type']
             logger.info("Update model: {}".format(cmodel.model_type))
     
-    # if "country_name" in request.form:
-    #     cmodel.country_name = request.form['country_name']
-    #     # cmodel.model_type = 'none'
-    #     cattrs.current_country = request.form['country_name']
-    #     logger.info("Update country: {}".format(cmodel.country_name))
-
-    # update prediction
     cmodel.update_prediction()
 
     try:
@@ -229,26 +233,34 @@ def change_data():
 
 
 
-@app.route("/", methods=['POST', 'GET'])
+@app.route("/", methods=["POST", "GET"])
 def chart():
     global cmodel
     global cattrs
     logger.info(request.form) # do something
 
-    logger.info("Query Data From Database")
+    logger.info("Loading Home Page...")
 
     if "country_name" in request.form:
-        country_name = request.form["country_name"]
-        logger.info("change country to {}".format(country_name))
-        dates, values = query_data(country_name, cattrs.display_span)
-        cattrs.current_country = country_name
-        cmodel.update_input(dates, values)
+        try:
+            country_name = request.form["country_name"]
+            logger.info("change country to {}".format(country_name))
+            dates, values = query_data(country_name, cattrs.display_span)
+            cattrs.current_country = country_name
+            cmodel.update_input(dates, values)
+        except Exception as ex:
+            logger.error(ex)
+
 
     if "load_data" in request.form:
         # download latest data from online resource
+        download_data.main()
         # clean the dataset
+        clean_data.main()
         # write to database
+        add_cases.main_from_session(db.session)
         # reflect on the page
+        country_name = cattrs.current_country
         dates, values = query_data(country_name, cattrs.display_span)
         cmodel.update_input(dates, values)
 
@@ -265,7 +277,11 @@ def chart():
         logger.error(ex)
 
 def query_data(country, n):
-    '''query the lastest n days of a country'''
+    '''query the lastest n days of a country
+    input:
+        country (str): country name
+        n (int): number of days to retrieve
+    '''
     global db
     # query data
     cases = db.session.query(Cases).filter_by(country=country).all()
@@ -280,21 +296,22 @@ def query_data(country, n):
     return dates, values
 
 if __name__ == '__main__':
+    # create a record for current model attributes
     cattrs = chart_attribute()
+    
+    # load parameters to chart attribute
+    with open(config.PARAM_CONFIG, "r") as f:
+        param = yaml.load(f, Loader=yaml.SafeLoader)
+        cattrs.param = param
 
     # get country names from database
     countries = db.session.execute("SELECT DISTINCT(country) FROM cases").fetchall()
     cattrs.countries = [x[0] for x in countries]
 
     dates, values = query_data(cattrs.current_country, cattrs.display_span)
-    # dates = ["5/2/20", "5/3/20", "5/4/20", "5/5/20", "5/6/20", "5/7/20", "5/8/20", "5/9/20", "5/10/20", "5/11/20", "5/12/20", "5/13/20", "5/14/20", "5/15/20"]
-    # values = [1, 2, 3, 4, 5, 6, 10, 9, 8, 7, 6, 4, 7, 8]
     cmodel = current_model(dates, values)
     
     debug=app.config["DEBUG"]
     app.run(port=app.config["PORT"], host=app.config["HOST"], threaded=False, debug=False)
-    # app.run(port=app.config["PORT"], host=app.config["HOST"])
-    
-    # db.session.query(Cases).filter_by(country="Afghanistan").all()
     
     

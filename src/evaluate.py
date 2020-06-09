@@ -10,6 +10,11 @@ def evaluate(y_test, y_pred):
     output:
         ({"r2": float, "msle": float}): dictionary of metrics
     '''
-    r2 = r2_score(y_test, y_pred)
-    msle = mean_squared_log_error(y_test, y_pred)
-    return {'r2': r2, 'msle': msle}
+    try:
+        r2 = r2_score(y_test, y_pred)
+        msle = mean_squared_log_error(y_test, y_pred)
+        return {'r2': r2, 'msle': msle}
+    except Exception as ex:
+        logger.error(ex)
+
+

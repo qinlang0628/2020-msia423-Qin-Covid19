@@ -7,12 +7,10 @@ from sqlalchemy import create_engine, Column, Integer, String, Date
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-import config
-from helpers import create_connection, get_session
+from config import config
+from src.helpers import create_connection, get_session
 import argparse
 import configparser
-
-import pandas as pd
 
 logging.config.fileConfig(config.LOGGING_CONFIG)
 logger = logging.getLogger('database_models')
@@ -32,7 +30,7 @@ class Cases(Base):
         return cases_repr % (self.country, self.date, self.confirm_cases)
 
 
-def _truncate_cases(session):
+def truncate_cases(session):
     """Deletes cases table if rerunning and run into unique key error."""
     session.execute('''DELETE FROM cases''')
 
@@ -54,7 +52,7 @@ def create_db(engine=None, engine_string=None):
 
     Base.metadata.create_all(engine)
 
-def add_cases(engine_string, id, country, date, confirm_cases):
+def add_case(engine_string, id, country, date, confirm_cases):
     """Seeds an existing database with additional cases.
     input:
         engine_string (str): database engine string
@@ -105,7 +103,7 @@ if __name__ == "__main__":
         session = get_session(engine_string=engine_string)
         try:
             logger.info("Attempting to truncate cases table ...")
-            _truncate_cases(session)
+            truncate_cases(session)
             session.commit()
             logger.info("Truncated Successfully.")
         except Exception as e:
@@ -123,26 +121,7 @@ if __name__ == "__main__":
         logger.error("Error occurred while creating database")
         logger.error(e)
 
-    # add cases
-    try:
-        session = get_session(engine_string=engine_string)
-        cases = pd.read_csv('data/sample/clean_confirmed_global.csv')
-        country_col = "Country"
-        date_cols = [x for x in cases.columns if x != "Country"]
-        id = 0
-        for index, row in cases.iterrows():
-            country = row[country_col]
-            for date in date_cols:
-                if row[date] == row[date]:
-                    case = Cases(id=str(id), country=country, date=date, confirm_cases=row[date])
-                    session.add(case)
-                    id += 1
-            logger.info("%s added to database", country)
-        session.commit()
-    except Exception as ex:
-        logger.error(ex)
-    finally:
-        session.close()
+    
                 
 
 
