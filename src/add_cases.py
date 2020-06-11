@@ -2,6 +2,7 @@
 # from app.models import Track
 import argparse
 import logging.config
+import logging
 import yaml
 import os
 import pandas as pd
@@ -15,11 +16,11 @@ from src.models import get_session, truncate_cases
 
 from config import config
 
+import logging
+import logging.config
+import os
 
-PROJECT_HOME = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LOGGING_CONFIG = os.path.join(PROJECT_HOME, 'config', 'logging.conf')
-
-logging.config.fileConfig(LOGGING_CONFIG)
+logging.config.fileConfig("config/logging.conf")
 
 Base = declarative_base()
 
@@ -71,6 +72,7 @@ def add_cases(session, config, **kwargs):
             logger.debug("%s added to database", country)
         # commit the change
         session.commit()
+        
     except Exception as ex:
         logger.error(ex)
 
@@ -86,7 +88,8 @@ def main_from_session(session):
         truncate_cases(session)
         add_cases(session, config, **param_py["add_cases"])
     except Exception as ex:
-        log.error(ex)
+        logger.error(ex)
+        raise Exception
 
 def main(engine_string):
     # construct a database connection

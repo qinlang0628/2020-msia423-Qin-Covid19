@@ -10,13 +10,15 @@ from src.evaluate import evaluate
 import src.download_data as download_data
 import src.clean_data as clean_data
 import src.add_cases as add_cases
-from src.models import create_db
+from src.models import create_db, truncate_cases
+
 
 from flask_sqlalchemy import SQLAlchemy
 from config import config
 import datetime
 import numpy as np
 import yaml
+import os
 
 from argparse import Namespace
 
@@ -35,6 +37,7 @@ logger = logging.getLogger('app')
 
 # Initialize the database
 db = SQLAlchemy(app)
+db.session.autoflush = True
 
 # define default values for the app
 class chart_attribute(object):
@@ -283,24 +286,22 @@ if __name__ == '__main__':
     with open("config/app_config.yml", "r") as f:
         param = yaml.load(f, Loader=yaml.SafeLoader)
         cattrs.param = param
+    
+    truncate_cases(db.session)
+    add_cases.main_from_session(db.session)
 
-    try:
-        # get country names from database
-        countries = db.session.execute("SELECT DISTINCT(country) FROM cases").fetchall()
-        cattrs.countries = [x[0] for x in countries]
-    except:
-        load_data(cattrs, db)
-        # get country names from database
-        countries = db.session.execute("SELECT DISTINCT(country) FROM cases").fetchall()
-        cattrs.countries = [x[0] for x in countries]
+    # get country names from database
+    # countries = db.session.query(Cases).all()
+    countries = db.session.execute("SELECT DISTINCT(country) FROM cases").fetchall()
+    cattrs.countries = [x[0] for x in countries]
 
-    # query data from default country
+    # # query data from default country
     dates, values = query_data(cattrs.current_country, cattrs.display_span)
 
-    # build a pre-defined model to show on the webapp
+    # # build a pre-defined model to show on the webapp
     cmodel = current_model(dates, values)
     
-    # run the app
+    # # run the app
     debug=app.config["DEBUG"]
     app.run(port=app.config["PORT"], host=app.config["HOST"], threaded=False, debug=False)
     

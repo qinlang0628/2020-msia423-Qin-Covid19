@@ -147,7 +147,7 @@ docker run --mount type=bind,source="$(pwd)",target=/app -p 5000:5000 runapp pyt
 ```
 Follow the link (http://0.0.0.0:5000/) to access the webapp, and Ctrl+C is you want to terminate the webapp.
 
-To connect the web app to a AWS RDS database, first define your own engine string as environment variable using this command ```export SQLALCHEMY_DATABASE_URI=<your engine string>```, and then run the command below
+To connect the web app to a AWS RDS database, first define your own engine string as environment variable using this command ```export SQLALCHEMY_DATABASE_URI=<your engine string>```, and then run the command below. Note that the app will be very slow running from RDS instances, since it acquire data from database whenever you make click.
 
 ```
 docker run -e SQLALCHEMY_DATABASE_URI --mount type=bind,source="$(pwd)",target=/app -p 5000:5000 runapp python3 app.py
@@ -161,7 +161,7 @@ This command run the model training pipeline from downloading data from S3, to e
 docker build -t runapp .
 docker run -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY --mount type=bind,source="$(pwd)",target=/app runapp /bin/bash -c "make clean | make"
 ```
-Currently the pipeline is only for exponential model for demonstration purpose, if you want to test pipeline for other models, you could change the input to ```--model_type``` to ```lstm``` or ```log```, to test the LSTM model and Logistic model.
+Currently the pipeline is only for exponential model for demonstration purpose, if you want to test pipeline for other models, you could change the input to ```--model_type``` to ```lstm``` or ```log```, to test the LSTM model and Logistic model. (It will be very slow to run the LSTM model)
 
 ### Step 8: Run unit test
 Unit Test is run for ```test/test_src.py``` and ```test/test_src_train.py```. The latter test file includes unittest of all functions in ```src/train.py```, while the former test file includes unittest of the rest of the files in ```src```.
