@@ -76,6 +76,7 @@ def add_case(engine_string, id, country, date, confirm_cases):
     logger.info("%s at %s of %s, added to database", country, date, confirm_cases)
 
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create defined tables in database")
     parser.add_argument("--truncate", "-t", default=False, action="store_true",
