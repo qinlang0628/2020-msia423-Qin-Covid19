@@ -1,0 +1,49 @@
+app:
+
+clean_data:
+  clean_data:
+    country_col_origin: "Country/Region"
+    country_col_rename: "Country"
+    lat_col: "Lat"
+    long_col: "Long"
+
+add_cases:
+  add_cases:
+    country_col: "Country"
+
+prediction_models:
+  python_hash_seed: 0
+  numpy_seed: 123
+  python_random_seed: 123
+  tf_random_seed: 1234
+  exponential_model:
+    lower_bound: 0
+    upper_bound: ["inf", "inf"]
+  lstm_model:
+    n_steps: 3
+    n_features: 1 
+    n_output: 1 
+    nodes: 50
+    epoch: 50
+    activation: "relu"
+    optimizer: 'adam' 
+    loss: 'mse'
+  logistic_model:
+    lower_bound: 0
+    upper_bound: ["inf", 1, "inf"]
+    p0: [1,0,1]
+    maxfev: 10000
+
+train:
+  training_pipeline:
+    country_col: "Country"
+    start_date: "1/22/20"
+    end_date: "6/8/20"
+    date_format: "%m/%d/%y"
+    n_test: 7
+
+  
+
+
+
+  

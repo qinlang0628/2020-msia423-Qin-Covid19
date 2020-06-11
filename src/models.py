@@ -7,33 +7,31 @@ from sqlalchemy import create_engine, Column, Integer, String, Date
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-import config
-from helpers import create_connection, get_session
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src.helpers import create_connection, get_session
 import argparse
 import configparser
 
-logging.config.fileConfig(config.LOGGING_CONFIG)
-logger = logging.getLogger('database_models')
+logging.config.fileConfig("config/logging.conf")
+
 
 Base = declarative_base()
 
 class Cases(Base):
+    logger = logging.getLogger('database_models')
     """ Defines the data model for the table `cases`. """
     __tablename__ = 'cases'
     id = Column(String(100), primary_key=True, unique=True, nullable=False)
-    country_id = Column(String(100), nullable=False)
     country = Column(String(100), unique=False, nullable=False)
-    date = Column(Date, nullable=False)
-    confirm_cases = Column(Integer, nullable=False)
-    fatal_cases = Column(Integer, nullable=False)
-    prediction = Column(Integer, nullable=True)
+    date = Column(String(100), nullable=False)
+    confirm_cases = Column(Integer, nullable=True)
 
     def __repr__(self):
-        cases_repr = "<Cases(country_id='%s', country='%s', date='%s', confirm_cases='%s', fatal_cases='%s', prediction='%s')>"
-        return cases_repr % (self.country_id, self.country, self.date, self.confirm_cases, self.prediction)
+        cases_repr = "<Cases(country='%s', date='%s', confirm_cases='%s')>"
+        return cases_repr % (self.country, self.date, self.confirm_cases)
 
 
-def _truncate_cases(session):
+def truncate_cases(session):
     """Deletes cases table if rerunning and run into unique key error."""
     session.execute('''DELETE FROM cases''')
 
@@ -56,6 +54,28 @@ def create_db(engine=None, engine_string=None):
     Base.metadata.create_all(engine)
 
 
+def add_case(engine_string, id, country, date, confirm_cases):
+    """Seeds an existing database with additional cases.
+    input:
+        engine_string (str): database engine string
+        id (int): id of the case
+        country (str): country name
+        date (str): date
+        confirm_cases (int): confirmed cases
+    output:None
+    """
+    logger = logging.getLogger('database_models')
+    engine = sqlalchemy.create_engine(engine_string)
+
+    Session = sessionmaker(bind=engine)
+    session = Session()
+
+    case = Cases(country=country, date=date, confirm_cases=confirm_cases)
+    session.add(case)
+    session.commit()
+    logger.info("%s at %s of %s, added to database", country, date, confirm_cases)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Create defined tables in database")
     parser.add_argument("--truncate", "-t", default=False, action="store_true",
@@ -66,27 +86,30 @@ if __name__ == "__main__":
                              "otherwise the database would not be created to RDS ")
     args = parser.parse_args()
 
+    logger = logging.getLogger('database_models')
+
     # by default, the engine is local
-    engine_string = config.SQLALCHEMY_DATABASE_URI
+    engine_string = "sqlite:///data/cases.db"
+    
     if args.rds:
         logger.info("Configuring AWS RDS url ...")
-        parser = configparser.RawConfigParser(allow_no_value=True)
-        parser.read(config.RDS_CONFIG)
         conn_type = "mysql+pymysql"
-        user = parser.get("default", "MYSQL_USER")
-        password = parser.get("default", "MYSQL_PASSWORD")
-        host = parser.get("default", "MYSQL_HOST")
-        port = parser.get("default", "MYSQL_PORT")
-        database = parser.get("default", "DATABASE_NAME")
+        user = os.environ.get("MYSQL_USER")
+        password = os.environ.get("MYSQL_PASSWORD")
+        host = os.environ.get("MYSQL_HOST")
+        port = os.environ.get("MYSQL_PORT")
+        database = os.environ.get("DATABASE_NAME")
         engine_string = engine_string = "{}://{}:{}@{}:{}/{}".format(conn_type, user, password, host, port, database)
         logger.info("Configured Successfully.")
+    if os.environ.get("SQLALCHEMY_DATABASE_URI") is not None:
+        engine_string = os.environ.get("SQLALCHEMY_DATABASE_URI")
 
     # If "truncate" is given as an argument (i.e. python models.py --truncate), then empty the cases table)
     if args.truncate:
         session = get_session(engine_string=engine_string)
         try:
             logger.info("Attempting to truncate cases table ...")
-            _truncate_cases(session)
+            truncate_cases(session)
             session.commit()
             logger.info("Truncated Successfully.")
         except Exception as e:
@@ -103,3 +126,8 @@ if __name__ == "__main__":
     except Exception as e:
         logger.error("Error occurred while creating database")
         logger.error(e)
+
+    
+                
+
+

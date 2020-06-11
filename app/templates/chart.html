@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<!-- <link href="basic.css" rel="stylesheet" type="text/css"> -->
+
+<style>
+  /* 13. Basic Styling with CSS */
+  /* Style the lines by removing the fill and applying a stroke */
+.line {
+  fill: none;
+  stroke: #ffab00;
+  stroke-width: 3;
+}
+
+/* .area {
+fill: lightsteelblue;
+} */
+
+.overlay {
+fill: none;
+pointer-events: all;
+}
+
+/* Style the dots by assigning a fill and stroke */
+.dot {
+  fill: #ffab00;
+  stroke: #fff;
+}
+
+.focus circle {
+fill: none;
+stroke: steelblue;
+}
+
+/* input[type=submit]
+{
+background-color: #4CAF50;
+border: none;
+color: white;
+padding: 16px 32px;
+text-decoration: none;
+margin: 4px 0px;
+cursor: pointer;
+} */
+
+.modelInput{
+  position:relative;
+  width:24%;
+  background-color: #4CAF50;
+  border: none;
+  color: white;
+  padding: 16px 32px;
+  text-decoration: none;
+  margin: 4px 0px;
+  cursor: pointer;
+  font-size: 16px;
+}
+.modelInput:hover, .modelInput:focus {
+  background-color: #3e8e41;
+}
+
+.loadInput{
+  position: relative;
+  width: 100%;
+  background-color: #4CAF50;
+  border: none;
+  color: white;
+  padding: 16px 32px;
+  text-decoration: none;
+  margin: 4px 0px;
+  cursor: pointer;
+  font-size: 16px;
+}
+.loadInput:hover, .loadInput:focus {
+  background-color: #3e8e41;
+}
+
+.options {
+  display: grid;
+}
+fieldset {
+  grid-row: 1;
+}
+
+
+.dropbtn {
+  background-color: #4CAF50;
+  color: white;
+  padding: 16px;
+  font-size: 16px;
+  position:relative;
+  width:100%;
+  border: none;
+  cursor: pointer;
+}
+
+.dropbtn:hover, .dropbtn:focus {
+  background-color: #3e8e41;
+}
+
+#myInput {
+  box-sizing: border-box;
+  background-image: url('searchicon.png');
+  background-position: 14px 12px;
+  background-repeat: no-repeat;
+  font-size: 16px;
+  padding: 14px 20px 12px 45px;
+  border: none;
+  border-bottom: 1px solid #ddd;
+}
+
+#myInput:focus {outline: 3px solid #ddd;}
+
+.dropdown {
+  position: relative;
+  /* display: inline-block; */
+}
+
+.dropdown-content {
+  display: none;
+  position: absolute;
+  background-color: #f6f6f6;
+  position: relative;
+  min-width: 230px;
+  overflow: auto;
+  border: 1px solid #ddd;
+  z-index: 1;
+}
+
+.dropdown-content a {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+}
+
+.dropdown a:hover {background-color: #ddd;}
+
+.show {display: block;}
+
+</style>
+
+  <head>
+    <meta charset="utf-8" />
+    <title>Chart.js Example</title>
+    
+    <!-- import plugin script -->
+    <!-- <script src='static/Chart.min.js'></script> -->
+  </head>
+  <!-- The chart is then defined as a HTML5 canvas element: -->
+  
+  <h1>Covid-19 Confirmed Case Prediction</h1>
+  <!-- bar chart canvas element -->
+
+  <!-- <div class="options">
+    <fieldset id="sourceList"> -->
+      <!-- <legend>Model</legend> -->
+      <div>
+
+        <form action="{{ url_for('chart') }}" method="post">
+          <input type="submit" name="load_data" class="loadInput" value="Load Lastest Data"/>
+        </form>
+        
+          <!-- country selection -->
+          <div class="dropdown" >
+            <button onclick="myFunction()" class="dropbtn">Select a country</button>
+            <div id="myDropdown" class="dropdown-content">
+              <input type="text" placeholder="Search.." id="myInput" onkeyup="filterFunction()">
+                <form action="{{ url_for('chart') }}" method="post" id="myCountries">
+                <script>
+                  var countries = [{% for item in countries %}"{{ item }}",{% endfor %}]
+                  for (var i = 0; i < countries.length; i++) {
+                      var newForm = document.createElement("input");
+                          // newForm.name = "country_name";
+                          newForm.type="submit";
+                          newForm.id = "form"+i;
+                          newForm.setAttribute("name","country_name" )
+                          newForm.value = countries[i];
+                          document.getElementById("myCountries").appendChild(newForm);
+                  }
+                </script>
+                </form>
+            </div>
+          </div>
+        
+          
+          <script>
+          /* When the user clicks on the button,
+          toggle between hiding and showing the dropdown content */
+          function myFunction() {
+            document.getElementById("myDropdown").classList.toggle("show");
+          }
+          
+          function filterFunction() {
+            var input, filter, ul, li, a, i;
+            input = document.getElementById("myInput");
+            filter = input.value.toUpperCase();
+            div = document.getElementById("myDropdown");
+            a = div.getElementsByTagName("input");
+            for (i = 0; i < a.length; i++) {
+              txtValue = a[i].value;
+              if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                a[i].style.display = "";
+              } else {
+                a[i].style.display = "none";
+              }
+            }
+          }
+          </script>
+
+      <form action="{{ url_for('change_data') }}" method="post">
+            <input type="submit" name="model_type" id="option1" value="exp" class="modelInput"/>
+            <input type="submit" name="model_type" id="option2" value="logistic" class="modelInput"/>
+            <input type="submit" name="model_type" id="option3" value="lstm" class="modelInput"/>
+            <input type="submit" name="model_type" id="option0" value="reset" class="modelInput"/>
+      </form>
+
+      
+
+      </div>
+    <!-- </fieldset> -->
+  <!-- </div>  -->
+
+  <script >
+    var model_details = JSON.parse('{{ model_details | tojson | safe}}');
+    
+      if (model_details.model_name == "None"){
+        document.querySelector(".model_info .model_name").innerHTML = "None";
+      } else {
+        document.querySelector(".model_info .model_name").innerHTML = model_details.model_name;
+      }
+  
+  </script>
+
+  <!-- <div class ="model_info">
+    <h2>The current model is: <span id="model_name"></span></h2>
+  </div>   -->
+  
+  <!-- Load in the d3 library -->
+  <script src="https://d3js.org/d3.v5.min.js"></script>
+  <script>
+
+  var dataset = {
+    dates : [
+      {% for item in labels %}
+      "{{ item }}",
+      {% endfor %}],
+    values : [
+      {% for item in values %}
+      "{{ item }}",
+      {% endfor %}],
+    keys : [
+      {% for item in keys %}
+      "{{ item }}",
+      {% endfor %}]
+  }
+
+  var pred_dataset = {
+    dates : [
+      {% for item in pred_labels %}
+      "{{ item }}",
+      {% endfor %}],
+    values : [
+      {% for item in pred_values %}
+      "{{ item }}",
+      {% endfor %}],
+    keys : [
+      {% for item in pred_keys %}
+      "{{ item }}",
+      {% endfor %}]
+  }
+
+  
+  // change dataset format
+
+
+  dataset = d3.range(dataset["dates"].length).map(function(e, i){
+    return {
+      "date": dataset["dates"][i], 
+      "y": parseInt(dataset["values"][i]),
+      "x": parseInt(dataset["keys"][i])
+      }})
+  
+  console.log(dataset)
+
+  pred_dataset = d3.range(pred_dataset["dates"].length).map(function(e, i){
+    return {
+      "date": pred_dataset["dates"][i], 
+      "y": parseInt(pred_dataset["values"][i]),
+      "x": parseInt(pred_dataset["keys"][i])
+      }})
+  
+  // append the last datapoint from the previous dataset to prediction dataset
+  pred_dataset.unshift(dataset.slice(-1).pop())
+    
+  // The number of datapoints
+  var n1 = dataset.length;
+  var n2 = pred_dataset.length;
+  var ymax1 = d3.max(dataset, function(d) { return d.y;});
+  var ymax2 = d3.max(pred_dataset, function(d) { return d.y;});
+  var ymax = d3.max([ymax1, ymax2]);
+  var xmax1 = d3.max(dataset, function(d) { return d.x;});
+  var xmax = d3.max(pred_dataset, function(d) { return d.x;});
+
+  // 2. Use the margin convention practice
+  var margin = {top: 50, right: 50, bottom: 50, left: 50}
+    , width = window.innerWidth - margin.left - margin.right // Use the window's width 
+    , height = window.innerHeight - margin.top - margin.bottom; // Use the window's height
+
+  // 5. X scale will use the index of our data
+  var xScale = d3.scaleLinear()
+      .domain([0, xmax]) // input
+      .range([0, width]); // output
+
+  // 6. Y scale will use the randomly generate number 
+  var yScale = d3.scaleLinear()
+      .domain([0, ymax]) // input 
+      .range([height, 0]); // output 
+
+  // 7. d3's line generator & area generator
+  var line = d3.line()
+      .x(function(d) { return xScale(d.x); }) // set the x values for the line generator
+      .y(function(d) { return yScale(d.y); }) // set the y values for the line generator 
+      .curve(d3.curveMonotoneX) // apply smoothing to the line
+  
+  // var area = d3.area()
+  //     .x(function(d) { return xScale(d.x); }) // set the x values for the area generator
+  //     .y0(0)
+  //     .y(function(d) { return yScale(d.y); }) // set the y values for the area generator 
+      
+
+  // 1. Add the SVG to the page and employ #2
+  var svg = d3.select("body").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+  // 3. Call the x axis in a group tag
+  svg.append("g")
+      .attr("class", "x axis")
+      .attr("transform", "translate(0," + height + ")")
+      .call(d3.axisBottom(xScale)
+        .tickFormat(function(d) {
+          if (d < xmax1){return dataset[d].date;}
+          else {return pred_dataset[d - xmax1].date;}}
+          )); // Create an axis component with d3.axisBottom
+      
+
+  // 4. Call the y axis in a group tag
+  svg.append("g")
+      .attr("class", "y axis")
+      .call(d3.axisLeft(yScale)); // Create an axis component with d3.axisLeft
+
+  // 9. Append the path, bind the data, and call the line generator 
+  svg.append("path")
+      .datum(dataset) // 10. Binds data to the line 
+      .attr("class", "line") // Assign a class for styling 
+      .attr("d", line); // 11. Calls the line generator 
+
+  // add the area
+  // svg.append("path")
+  //     .datum(dataset) 
+  //     .attr("class", "area")
+  //     .attr("d", area);
+  
+  if (model_details.show_prediction == true){
+    svg.append("path")
+      .datum(pred_dataset) // 10. Binds data to the line 
+      .attr("class", "line") // Assign a class for styling 
+      .attr("d", line) // 11. Calls the line generator 
+      .attr("stroke-dasharray", '5,5');
+  }
+
+  svg.append("line") // a dash line for the current date
+      .attr("x1", xScale(xmax1))  //<<== change your code here
+      .attr("y1", yScale(dataset.slice(-1).pop().y))
+      .attr("x2", xScale(xmax1))  //<<== and here
+      .attr("y2", window.innerHeight - margin.top - margin.bottom)
+      .style("stroke-width", 2)
+      .style("stroke", "grey")
+      .style("fill", "none");
+
+  // 12. Appends a circle for each datapoint
+  svg.selectAll(".dot1")
+      .data(dataset)
+      .enter().append("circle") // Uses the enter().append() method
+      .attr("class", "dot") // Assign a class for styling
+      .attr("cx", function(d) { return xScale(d.x) })
+      .attr("cy", function(d) { return yScale(d.y) })
+      .attr("r", 5)
+        .on("mouseover", function(a, b, c) { 
+          console.log(a["date"], a["y"]) 
+          // this.attr('class', 'focus')
+      })
+        .on("mouseout", function() {  })
+  
+
+  if (model_details.show_prediction == true){
+    svg.selectAll(".dot2")
+        .data(pred_dataset)
+        .enter().append("circle") // Uses the enter().append() method
+        .attr("class", "dot") // Assign a class for styling
+        .attr("cx", function(d) { return xScale(d.x) })
+        .attr("cy", function(d) { return yScale(d.y) })
+        .attr("r", 5)
+          .on("mouseover", function(a, b, c) { 
+            console.log(a) 
+            // this.attr('class', 'focus')
+        })
+          .on("mouseout", function() {  })
+  }
+  
+  // 13. append text
+  var current_country = {{current_country|tojson}}
+  svg.append("text")
+    .attr("y", margin.top - 10)
+    .attr("x", window.innerWidth / 2)
+    .attr('text-anchor', 'middle')
+    .attr("class", "model_analysis")//easy to style with CSS
+    .text("Current Country: " + current_country)
+
+  svg.append("text")
+    .attr("y", margin.top + 10)
+    .attr("x", window.innerWidth / 2)
+    .attr('text-anchor', 'middle')
+    .attr("class", "model_analysis")//easy to style with CSS
+    .text("Current Model: " + model_details.model_name)
+
+  if (model_details.model_name != "None"){
+    svg.append("text")
+    .attr("y", margin.top + 30)
+    .attr("x", window.innerWidth / 2)
+    .attr('text-anchor', 'middle')
+    .attr("class", "model_analysis")//easy to style with CSS
+    .text("Model R Square: " + model_details.r2)
+  
+    svg.append("text")
+    .attr("y", margin.top + 50)
+    .attr("x", window.innerWidth / 2)
+    .attr('text-anchor', 'middle')
+    .attr("class", "model_analysis")//easy to style with CSS
+    .text("Model MSLE: " + model_details.msle)
+  }
+  
+  </script>
+  
+
+
+
+
+  

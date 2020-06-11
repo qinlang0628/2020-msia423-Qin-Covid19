@@ -1,30 +1,48 @@
+import src.download_data as download_data
+import src.clean_data as clean_data
+import src.add_cases as add_cases
+import config.config as config
+import src.train as train 
+from src import score_model
+import src.evaluate as evaluate
+import src.acquire_data as acquire_data
+import src.upload_data as upload_data
+
+from src.prediction_models import exponential_model, param_py as model_params
+
 import argparse
+import os
 
-from src.add_songs import create_db, add_track
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="running pipeline")
 
-if __name__ == '__main__':
-
-    # Add parsers for both creating a database and adding songs to it
-    parser = argparse.ArgumentParser(description="Create and/or add data to database")
-    subparsers = parser.add_subparsers()
-
-    # Sub-parser for creating a database
-    sb_create = subparsers.add_parser("create_db", description="Create database")
-    sb_create.add_argument("--artist", default="Britney Spears", help="Artist of song to be added")
-    sb_create.add_argument("--title", default="Radar", help="Title of song to be added")
-    sb_create.add_argument("--album", default="Circus", help="Album of song being added.")
-    sb_create.add_argument("--engine_string", default='sqlite:///data/tracks.db',
-                           help="SQLAlchemy connection URI for database")
-    sb_create.set_defaults(func=create_db)
-
-    # Sub-parser for ingesting new data
-    sb_ingest = subparsers.add_parser("ingest", description="Add data to database")
-    sb_ingest.add_argument("--artist", default="Emancipator", help="Artist of song to be added")
-    sb_ingest.add_argument("--title", default="Minor Cause", help="Title of song to be added")
-    sb_ingest.add_argument("--album", default="Dusk to Dawn", help="Album of song being added")
-    sb_ingest.add_argument("--engine_string", default='sqlite:///data/tracks.db',
-                           help="SQLAlchemy connection URI for database")
-    sb_ingest.set_defaults(func=add_track)
-
+    # all arguments needed in the pipeline
+    parser.add_argument("--start_point", default="acquire", help="available start point: 'acquire', 'download'")
+    
+    parser.add_argument("--bucket", default=config.BUCKET,help="S3 bucket name")
+    parser.add_argument("--url", default=os.path.join(config.BASE_URL, config.FILE_NAME),help="url to raw data")
+    parser.add_argument("--file_name", default=config.FILE_NAME, help="file name")
+    parser.add_argument("--raw_data", default=config.RAW_DATA,help="path to raw data")
+    parser.add_argument("--clean_file", default=config.CLEAN_FILE_PATH, help="path to cleaned data")
+    parser.add_argument("--model_type", default="exp",help="available models: exp, log or lstm")
+    parser.add_argument("--train", default=config.TRAIN, help="train directory")
+    parser.add_argument("--test", default=config.TEST, help="test directory")
+    parser.add_argument("--model_dir", default=config.MODEL_DIR, help="model directory")
+    parser.add_argument("--pred", default=config.PRED, help="prediction directory")
+    
     args = parser.parse_args()
-    args.func(args)
+
+    assert args.start_point in ["download", "acquire"], "Invalid input for start point"
+
+    if args.start_point == "download":
+        download_data.main(args)
+        upload_data.main(args)
+    
+    acquire_data.main(args)
+    clean_data.main(args)
+    train.main(args)
+    score_model.main(args)
+    evaluate.main(args)
+
+    # add_cases.main(config.SQLALCHEMY_DATABASE_URI)
+    
