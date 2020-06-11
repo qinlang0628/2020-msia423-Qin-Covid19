@@ -102,6 +102,8 @@ The metric that would actually measure the business outcome is transmission rate
 
 ## <a name="#instructions">Instructions
 
+Note that the mid-project checkpoint includes Step 1-5, and the final checkpoint includes Step 6 onwards.
+
 ### Step 1. Clone the repository
 ```
 git clone git@github.com:qinlang0628/2020-msia423-Qin-Covid19.git
@@ -120,19 +122,51 @@ By default, the data will be downloaded to data/sample, you can also specify the
 
 ### Step 4. Upload the data to AWS S3.
 
-To connect to the AWS S3, you need to change the credential information in ```config/aws_s3.conf``` by replacing \<access key id> and \<secret access key> with your own key, which can be found in "security_credentials" section under your AWS account. If you edit the config file after building the file,  you need to re-build the image (Step 2) before running the script. Then type the command below:
+To connect to the AWS S3, you need to source <AWS_ACCESS_KEY_ID> and <AWS_SECRET_ACCESS_KEY> as environment variable, which can be found in "security_credentials" section under your AWS account. Then type the command below:
 ```
-docker run --mount type=bind,source="$(pwd)"/data,target=/app/data runapp python3 src/upload_data.py
+docker run -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY --mount type=bind,source="$(pwd)"/data,target=/app/data runapp python3 src/upload_data.py
 ```
 By default the bucket name is ```nw-langqin-s3```, you can also specify your own own bucket by add a ```--bucket <bucket name>``` or ```-b <bucket name>``` .
 
 ### Step 5. Create an empty database
-- Choice 1: The database could be created locally by the command below:
+- Choice 1: The database could be created locally by the command below, the default path of the database is ```data/cases.db```
 ```
 docker run --mount type=bind,source="$(pwd)"/data,target=/app/data runapp python3 src/models.py
 ```
-- Choice 2: If you want to create the database in AWS RDS, you need to modify the ```config/aws_rds.conf``` by replacing \<user>, \<password>, \<host>, \<port>, \<database> by your own information. If you edit the config file after building the file,  you need to re-build the image (Step 2) before running the script. Then type the command below:
+- Choice 2: If you want to create the database in AWS RDS, you need to modify the ```<aws_config_file>``` to the path of your RDS configuration file.
 ```
-docker run --mount type=bind,source="$(pwd)"/data,target=/app/data runapp python3 src/models.py --rds
+docker run --env-file <aws_config_file>  --mount type=bind,source="$(pwd)",target=/app runapp python3 src/models.py --rds
+```
+
+### Step 6: Run App from local database
+
+To connect the web app to a local database, run the following command:
+```
+docker build -t runapp .
+docker run --mount type=bind,source="$(pwd)",target=/app -p 5000:5000 runapp python3 app.py
+```
+Follow the link (http://0.0.0.0:5000/) to access the webapp, and Ctrl+C is you want to terminate the webapp.
+
+To connect the web app to a AWS RDS database, first define your own engine string as environment variable using this command ```export SQLALCHEMY_DATABASE_URI=<your engine string>```, and then run the command below
+
+```
+docker run -e SQLALCHEMY_DATABASE_URI --mount type=bind,source="$(pwd)",target=/app -p 5000:5000 runapp python3 app.py
+```
+
+
+### Step 7: Run model training pipeline
+
+This command run the model training pipeline from downloading data from S3, to evaluating the result. To connect to the AWS S3, you need to source <AWS_ACCESS_KEY_ID> and <AWS_SECRET_ACCESS_KEY> as environment variable, which can be found in "security_credentials" section under your AWS account. 
+```
+docker build -t runapp .
+docker run -e AWS_ACCESS_KEY_ID -e AWS_SECRET_ACCESS_KEY --mount type=bind,source="$(pwd)",target=/app runapp /bin/bash -c "make clean | make"
+```
+Currently the pipeline is only for exponential model for demonstration purpose, if you want to test pipeline for other models, you could change the input to ```--model_type``` to ```lstm``` or ```log```, to test the LSTM model and Logistic model.
+
+### Step 8: Run unit test
+Unit Test is run for ```test/test_src.py``` and ```test/test_src_train.py```. The latter test file includes unittest of all functions in ```src/train.py```, while the former test file includes unittest of the rest of the files in ```src```.
+```
+docker build -t runapp .
+docker run runapp pytest
 ```
 

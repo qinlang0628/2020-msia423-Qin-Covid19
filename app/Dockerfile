@@ -1,6 +1,6 @@
 FROM ubuntu:18.04
 
-RUN apt-get update -y && apt-get install -y python3-pip python3-dev git gcc g++
+RUN apt-get update -y && apt-get install -y python3-pip python3-dev git gcc g++ source
 
 COPY ./requirements.txt /app/requirements.txt
 
@@ -13,8 +13,8 @@ COPY . /app
 
 RUN chmod +x app/boot.sh
 
-RUN chmod +x .mysqlconfig.sh
+# RUN chmod +x .mysqlconfig.sh
 
 EXPOSE 5000
 
-CMD ["./app/boot.sh"]
+CMD ["bash"]

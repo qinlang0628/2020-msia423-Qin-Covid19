@@ -3,34 +3,35 @@ import logging.config
 import boto3
 from botocore.exceptions import ClientError
 import argparse
-import configparser
+# import configparser
 import os
-import config
 
-logging.config.fileConfig(config.LOGGING_CONFIG)
-logger = logging.getLogger('upload_data')
+logging.config.fileConfig("config/logging.conf")
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description="Create defined tables in database")
-    parser.add_argument("--data", "-d", 
-                        default=os.path.join("data", "sample", config.FILE_NAME), 
-                        help="Pass in data file path.")
-    parser.add_argument("--bucket", "-b", 
-                        default="nw-langqin-s3",
-                        help="Pass in bucket name.")
-    args = parser.parse_args()
 
+def main(args):
+    '''
+    input:
+        args.raw_data: file to raw csv data
+        args.bucket: S3 bucket name
+        args.file_name: file name of raw csv data
+    output:
+        None
+    '''
+    logger = logging.getLogger('upload_data')
     # read aws credentials
-    parser = configparser.RawConfigParser(allow_no_value=True)
-    parser.read(config.S3_CONFIG)
-    AWS_ACCESS_KEY_ID = parser.get("default", "AWS_ACCESS_KEY_ID")
-    AWS_SECRET_ACCESS_KEY = parser.get("default", "AWS_SECRET_ACCESS_KEY")
-    REGION = parser.get("default", "REGION")
+    # parser = configparser.RawConfigParser(allow_no_value=True)
+    # parser.read(config.S3_CONFIG)
+    # AWS_ACCESS_KEY_ID = parser.get("default", "AWS_ACCESS_KEY_ID")
+    # AWS_SECRET_ACCESS_KEY = parser.get("default", "AWS_SECRET_ACCESS_KEY")
+    # REGION = parser.get("default", "REGION")
+    AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
 
     # read filename and bucket
-    file_path = args.data
+    file_path = args.raw_data
     bucket_name = args.bucket
-    file_name = os.path.basename(file_path)
+    file_name = args.file_name
 
     # connect to s3
     try:
@@ -50,3 +51,14 @@ if __name__ == '__main__':
     except Exception as ex:
         logger.error("Error occurred when uploading data to Amazon S3 bucket.")
         logger.error(ex)
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Create defined tables in database")
+    parser.add_argument("--raw_data", "-d", default=os.path.join("data", "sample", "time_series_covid19_confirmed_global.csv"), 
+                        help="Pass in data file path.")
+    parser.add_argument("--bucket", "-b", default="nw-langqin-s3", help="Pass in bucket name.")
+    parser.add_argument("--file_name", default='time_series_covid19_confirmed_global.csv', help="file name")
+    args = parser.parse_args()
+
+    main(args)

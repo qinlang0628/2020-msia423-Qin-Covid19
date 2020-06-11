@@ -7,17 +7,18 @@ from sqlalchemy import create_engine, Column, Integer, String, Date
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 
-from config import config
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.helpers import create_connection, get_session
 import argparse
 import configparser
 
-logging.config.fileConfig(config.LOGGING_CONFIG)
-logger = logging.getLogger('database_models')
+logging.config.fileConfig("config/logging.conf")
+
 
 Base = declarative_base()
 
 class Cases(Base):
+    logger = logging.getLogger('database_models')
     """ Defines the data model for the table `cases`. """
     __tablename__ = 'cases'
     id = Column(String(100), primary_key=True, unique=True, nullable=False)
@@ -52,6 +53,7 @@ def create_db(engine=None, engine_string=None):
 
     Base.metadata.create_all(engine)
 
+
 def add_case(engine_string, id, country, date, confirm_cases):
     """Seeds an existing database with additional cases.
     input:
@@ -62,6 +64,7 @@ def add_case(engine_string, id, country, date, confirm_cases):
         confirm_cases (int): confirmed cases
     output:None
     """
+    logger = logging.getLogger('database_models')
     engine = sqlalchemy.create_engine(engine_string)
 
     Session = sessionmaker(bind=engine)
@@ -83,20 +86,23 @@ if __name__ == "__main__":
                              "otherwise the database would not be created to RDS ")
     args = parser.parse_args()
 
+    logger = logging.getLogger('database_models')
+
     # by default, the engine is local
-    engine_string = config.SQLALCHEMY_DATABASE_URI
+    engine_string = "sqlite:///data/cases.db"
+    
     if args.rds:
         logger.info("Configuring AWS RDS url ...")
-        parser = configparser.RawConfigParser(allow_no_value=True)
-        parser.read(config.RDS_CONFIG)
         conn_type = "mysql+pymysql"
-        user = parser.get("default", "MYSQL_USER")
-        password = parser.get("default", "MYSQL_PASSWORD")
-        host = parser.get("default", "MYSQL_HOST")
-        port = parser.get("default", "MYSQL_PORT")
-        database = parser.get("default", "DATABASE_NAME")
+        user = os.environ.get("MYSQL_USER")
+        password = os.environ.get("MYSQL_PASSWORD")
+        host = os.environ.get("MYSQL_HOST")
+        port = os.environ.get("MYSQL_PORT")
+        database = os.environ.get("DATABASE_NAME")
         engine_string = engine_string = "{}://{}:{}@{}:{}/{}".format(conn_type, user, password, host, port, database)
         logger.info("Configured Successfully.")
+    if os.environ.get("SQLALCHEMY_DATABASE_URI") is not None:
+        engine_string = os.environ.get("SQLALCHEMY_DATABASE_URI")
 
     # If "truncate" is given as an argument (i.e. python models.py --truncate), then empty the cases table)
     if args.truncate:

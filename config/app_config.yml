@@ -32,12 +32,13 @@ prediction_models:
     lower_bound: 0
     upper_bound: ["inf", 1, "inf"]
     p0: [1,0,1]
-    maxfev: 5000
+    maxfev: 10000
 
 train:
   training_pipeline:
+    country_col: "Country"
     start_date: "1/22/20"
-    end_date: "6/7/20"
+    end_date: "6/8/20"
     date_format: "%m/%d/%y"
     n_test: 7
 

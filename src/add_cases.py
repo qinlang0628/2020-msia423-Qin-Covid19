@@ -5,6 +5,7 @@ import logging.config
 import yaml
 import os
 import pandas as pd
+import os
 
 import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
@@ -15,12 +16,15 @@ from src.models import get_session, truncate_cases
 from config import config
 
 
-logger = logging.getLogger(__name__)
-logger.setLevel("INFO")
+PROJECT_HOME = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+LOGGING_CONFIG = os.path.join(PROJECT_HOME, 'config', 'logging.conf')
+
+logging.config.fileConfig(LOGGING_CONFIG)
 
 Base = declarative_base()
 
 class Cases(Base):
+    logger = logging.getLogger('add_cases')
     """ Defines the data model for the table `cases`. """
     __tablename__ = 'cases'
     id = Column(String(100), primary_key=True, unique=True, nullable=False)
@@ -33,28 +37,6 @@ class Cases(Base):
         return cases_repr % (self.country, self.date, self.confirm_cases)
 
 
-def create_db(args):
-    """Creates a database with the data model given by obj:`apps.models.Track`
-
-    Args:
-        args: Argparse args - should include args.title, args.artist, args.album
-
-    Returns: None
-
-    """
-
-    engine = sqlalchemy.create_engine(args.engine_string)
-
-    Base.metadata.create_all(engine)
-
-    Session = sessionmaker(bind=engine)
-    session = Session()
-
-    track = Tracks(artist=args.artist, album=args.album, title=args.title)
-    session.add(track)
-    session.commit()
-    logger.info("Database created with song added: %s by %s from album, %s ", args.title, args.artist, args.album)
-    session.close()
 
 # add cases
 def add_cases(session, config, **kwargs):
@@ -65,6 +47,7 @@ def add_cases(session, config, **kwargs):
     output:
         None
     '''
+    logger = logging.getLogger('add_cases')
     try:
         logger.info("Add cases to database...")
         # read cases from csv
@@ -92,8 +75,10 @@ def add_cases(session, config, **kwargs):
         logger.error(ex)
 
 def main_from_session(session):
+    logger = logging.getLogger('add_cases')
     try:
         # read yml config
+        logger.info("Adding cases ...")
         with open(config.PARAM_CONFIG, "r") as f:
             param = yaml.load(f, Loader=yaml.SafeLoader)
         param_py = param["add_cases"]
@@ -105,6 +90,7 @@ def main_from_session(session):
 
 def main(engine_string):
     # construct a database connection
+    logger = logging.getLogger('add_cases')
     try:
         session = get_session(engine_string=engine_string)
     except Exception as ex:
@@ -121,5 +107,5 @@ def main(engine_string):
             session.close()
 
 if __name__ == "__main__":
-    engine_string = config.SQLALCHEMY_DATABASE_URI
+    engine_string = "sqlite:///data/cases.db"
     main(engine_string)

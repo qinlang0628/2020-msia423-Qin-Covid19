@@ -4,18 +4,21 @@ import logging.config
 
 from flask import Flask
 from src.add_cases import Cases
-from src.prediction_models import exponential_model, lstm_model, logistic_model
+from src.train import exponential_model, lstm_model, logistic_model
 from src.evaluate import evaluate
 
 import src.download_data as download_data
 import src.clean_data as clean_data
 import src.add_cases as add_cases
+from src.models import create_db
 
 from flask_sqlalchemy import SQLAlchemy
 from config import config
 import datetime
 import numpy as np
 import yaml
+
+from argparse import Namespace
 
 
 
@@ -32,44 +35,6 @@ logger = logging.getLogger('app')
 
 # Initialize the database
 db = SQLAlchemy(app)
-
-# @app.route('/')
-# def index():
-#     """Main view that lists songs in the database.
-
-#     Create view into index page that uses data queried from Track database and
-#     inserts it into the msiapp/templates/index.html template.
-
-#     Returns: rendered html template
-
-#     """
-
-#     try:
-#         # tracks = db.session.query(Tracks).limit(app.config["MAX_ROWS_SHOW"]).all()
-#         logger.debug("Index page accessed")
-#         return render_template('chart.html', tracks=tracks)
-#     except:
-#         traceback.print_exc()
-#         logger.warning("Not able to display tracks, error page returned")
-#         return render_template('error.html')
-
-
-# @app.route('/add', methods=['POST'])
-# def add_entry():
-#     """View that process a POST with new song input
-
-#     :return: redirect to index page
-#     """
-
-#     try:
-#         track1 = Tracks(artist=request.form['artist'], album=request.form['album'], title=request.form['title'])
-#         db.session.add(track1)
-#         db.session.commit()
-#         logger.info("New song added: %s by %s", request.form['title'], request.form['artist'])
-#         return redirect(url_for('index'))
-#     except:
-#         logger.warning("Not able to display tracks, error page returned")
-#         return render_template('error.html')
 
 # define default values for the app
 class chart_attribute(object):
@@ -161,8 +126,6 @@ class current_model(object):
                 "r2": evaluation["r2"],"msle": evaluation["msle"]}
         except Exception as ex:
             logger.error(ex)
-            self.model_details = {
-                "r2": "not enough data","msle": "not enough data"}
 
         # return evaluation
 
@@ -190,13 +153,22 @@ class current_model(object):
             else:
                 # update prediction values
                 x, y, x_test = np.array(self.keys_use), np.array(self.values_use), np.array(self.pred_keys)
-                self.model.fit(x, y)
-                self.pred_values = list(self.model.predict(x_test))
+                try:
+                    self.model.fit(x, y)
+                    self.pred_values = list(self.model.predict(x_test))
+                except: # if fail to fit or predict, use the last value as prediction
+                    self.pred_values = list(np.ones(x_test.shape) * self.values[-1])
 
                 # get last x day performance
-                self.evaluate_model()
+                try:
+                    self.evaluate_model()
+                except: # if evaluation fails, show the failure on the web app
+                    self.model_details = {
+                    "r2": "Evaluation fails","msle": "Evaluation fails"}
+                
                 self.model_details["model_name"] = self.model.get_name()
                 self.model_details["show_prediction"] = True
+
         except Exception as ex:
             logger.error(Exception)
 
@@ -231,7 +203,19 @@ def change_data():
     except Exception as ex:
         logger.error(ex)
 
-
+def load_data(cattrs, db):
+    # create a namespace object to pass in values
+    args = Namespace()
+    args.url = app.config["DATA_URL"]
+    args.raw_data = app.config["RAW_DATA"]
+    args.clean_file = app.config["CLEAN_FILE"]
+    # download latest data from online resource
+    download_data.main(args) 
+    # clean the dataset
+    clean_data.main(args)
+    # write to database
+    add_cases.main_from_session(db.session)
+    
 
 @app.route("/", methods=["POST", "GET"])
 def chart():
@@ -253,12 +237,8 @@ def chart():
 
 
     if "load_data" in request.form:
-        # download latest data from online resource
-        download_data.main()
-        # clean the dataset
-        clean_data.main()
-        # write to database
-        add_cases.main_from_session(db.session)
+        load_data(cattrs, db)
+
         # reflect on the page
         country_name = cattrs.current_country
         dates, values = query_data(country_name, cattrs.display_span)
@@ -282,9 +262,9 @@ def query_data(country, n):
         country (str): country name
         n (int): number of days to retrieve
     '''
-    global db
     # query data
-    cases = db.session.query(Cases).filter_by(country=country).all()
+    cases = db.session.execute("SELECT * from cases").fetchall()
+    cases = [x for x in cases if x.country == country]
     # sort by dates
     cases.sort(key=lambda c: datetime.datetime.strptime(c.date, "%m/%d/%y"))
     # update data
@@ -300,17 +280,27 @@ if __name__ == '__main__':
     cattrs = chart_attribute()
     
     # load parameters to chart attribute
-    with open(config.PARAM_CONFIG, "r") as f:
+    with open("config/app_config.yml", "r") as f:
         param = yaml.load(f, Loader=yaml.SafeLoader)
         cattrs.param = param
 
-    # get country names from database
-    countries = db.session.execute("SELECT DISTINCT(country) FROM cases").fetchall()
-    cattrs.countries = [x[0] for x in countries]
+    try:
+        # get country names from database
+        countries = db.session.execute("SELECT DISTINCT(country) FROM cases").fetchall()
+        cattrs.countries = [x[0] for x in countries]
+    except:
+        load_data(cattrs, db)
+        # get country names from database
+        countries = db.session.execute("SELECT DISTINCT(country) FROM cases").fetchall()
+        cattrs.countries = [x[0] for x in countries]
 
+    # query data from default country
     dates, values = query_data(cattrs.current_country, cattrs.display_span)
+
+    # build a pre-defined model to show on the webapp
     cmodel = current_model(dates, values)
     
+    # run the app
     debug=app.config["DEBUG"]
     app.run(port=app.config["PORT"], host=app.config["HOST"], threaded=False, debug=False)
     
