@@ -7,7 +7,7 @@ requests
 boto3
 PyMySQL==0.9.3
 scikit-learn==0.22.1
-tensorflow==2.0.0
+tensorflow==2.7.2
 keras==2.3.1
 scipy==1.4.1
 pandas==1.0.1
